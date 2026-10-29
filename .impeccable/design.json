@@ -3,6 +3,26 @@
   "generatedAt": "2026-10-29T22:31:35.881Z",
   "title": "Design System: ux workbench",
   "extensions": {
+    "themes": {
+      "light": {
+        "page": "#e9edf0",
+        "paper": "#fcfcfa",
+        "panel": "#f3f5f6",
+        "text": "#29333d",
+        "muted": "#596672",
+        "line": "#cbd2d8",
+        "link": "#2448b7"
+      },
+      "dark": {
+        "page": "#14191f",
+        "paper": "#1b2129",
+        "panel": "#222a34",
+        "text": "#dce4ec",
+        "muted": "#a4b2c0",
+        "line": "#3a4653",
+        "link": "#a3beff"
+      }
+    },
     "colorMeta": {
       "primary": {
         "role": "primary",

@@ -9,6 +9,24 @@ FORM: Technical drafting desk, candidate 6, seed 1d0e9949; connected source / in
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#e9edf0">
+  <script>
+    (() => {
+      let preference = null;
+      try {
+        preference = localStorage.getItem('ux-theme');
+        if (preference && !['light', 'dark'].includes(preference)) {
+          console.warn('Invalid saved theme preference; using the system theme.');
+          preference = null;
+        }
+      } catch (error) {
+        console.warn('Theme preference could not be read:', error);
+      }
+      const theme = preference || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.themePreference = preference || 'system';
+      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#14191f' : '#e9edf0';
+    })();
+  </script>
   <meta name="description" content="A browser-native Uxn, Uxntal and Varvara programming workbench powered by WebAssembly. Write, run, debug and explore.">
   <title>ux — Uxn workbench</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%232448da'/%3E%3Cpath d='M14 18v20q0 12 12 12t12-12V18M44 18l12 32m0-32L44 50' fill='none' stroke='white' stroke-width='5'/%3E%3C/svg%3E">
@@ -18,7 +36,7 @@ FORM: Technical drafting desk, candidate 6, seed 1d0e9949; connected source / in
   <header class="app-header">
     <a class="brand" href="./" aria-label="ux workbench home">ux<span class="brand-dot">.</span></a>
     <div class="identity"><strong>Uxn workbench</strong><span>Small machine. Open possibilities.</span></div>
-    <div class="header-end"><span class="wasm-label"><i></i> WebAssembly</span><button id="reference-toggle">Reference <span aria-hidden="true">↗</span></button><a href="https://github.com/robertbrook/ux" target="_blank" rel="noreferrer">Source ↗</a></div>
+    <div class="header-end"><span class="wasm-label"><i></i> WebAssembly</span><button id="theme-toggle" aria-label="Dark mode" aria-pressed="false" title="Switch to dark mode"><span aria-hidden="true">◐</span></button><button id="reference-toggle">Reference <span aria-hidden="true">↗</span></button><a href="https://github.com/robertbrook/ux" target="_blank" rel="noreferrer">Source ↗</a></div>
   </header>
   <main class="workspace">
     <aside class="rail" aria-label="Project and examples">

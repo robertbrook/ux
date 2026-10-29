@@ -15,10 +15,33 @@ let store, current, worker, compiled, state, sourceMap = {}, labels = {}, breakp
 let activeTab = 'console', consoleText = '', buildTime = 0, loaded = false, saveTimer, memoryPage = 0x100;
 let buttons = 0, mouseButtons = 0, loadingTimer, lastFrame, saveBlocked = false, startupError = '', recoveryData = '';
 const audio = new AudioEngine(message => worker?.postMessage(message));
+const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+let themePreference = document.documentElement.dataset.themePreference;
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.themePreference = themePreference;
+  $('theme-toggle').setAttribute('aria-pressed', String(theme === 'dark'));
+  $('theme-toggle').title = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
+  document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#14191f' : '#e9edf0';
+}
+applyTheme(document.documentElement.dataset.theme);
+$('theme-toggle').onclick = () => {
+  themePreference = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(themePreference);
+  try { localStorage.setItem('ux-theme', themePreference); }
+  catch (error) { report(`Theme changed, but the preference could not be saved: ${error.message}`, true); }
+};
+systemTheme.addEventListener('change', event => {
+  if (themePreference === 'system') applyTheme(event.matches ? 'dark' : 'light');
+});
+window.addEventListener('storage', event => {
+  if (event.key !== 'ux-theme' && event.key !== null) return;
+  themePreference = ['light', 'dark'].includes(event.newValue) ? event.newValue : 'system';
+  applyTheme(themePreference === 'system' ? systemTheme.matches ? 'dark' : 'light' : themePreference);
+});
 function report(message, error = false) {
   $('notice').textContent = message; $('notice').hidden = !message;
-  $('notice').style.background = error ? '#fae7e2' : '#e5ecfa';
-  $('notice').style.color = error ? '#8d2921' : '#24447b';
+  $('notice').dataset.error = String(error);
 }
 function log(text, kind = '') {
   const atBottom = $('console').scrollHeight - $('console').scrollTop - $('console').clientHeight < 30;
@@ -40,9 +63,9 @@ function persist() {
   if (saveBlocked) { $('save-status').textContent = 'Saving blocked — export a backup'; return; }
   try {
     localStorage.setItem(key, JSON.stringify(store));
-    $('save-status').textContent = 'Saved locally'; $('save-status').style.color = '#34674f';
+    $('save-status').textContent = 'Saved locally'; $('save-status').dataset.error = 'false';
   } catch (error) {
-    $('save-status').textContent = 'Not saved — export a backup'; $('save-status').style.color = '#a52e26';
+    $('save-status').textContent = 'Not saved — export a backup'; $('save-status').dataset.error = 'true';
     report(`Browser storage failed: ${error.message}. Export your project now to preserve changes.`, true);
   }
 }

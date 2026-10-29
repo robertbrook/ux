@@ -15,6 +15,7 @@ A browser-based Uxn / Uxntal / Varvara programming environment. The VM runs real
 - Two virtual File devices with independent cursors, read/write/append/delete/stat and directory listing.
 - Eight editable example programs and an integrated language/device reference.
 - Local project persistence, project JSON import/export, `.tal` import/export, ROM import/export, virtual file upload/download and PNG screenshots.
+- Light and dark themes, with system-preference detection and a saved header toggle. Theme changes affect the workbench, not the ROM's palette or exported screenshots.
 
 Select an example and **Assemble & run**. **Assemble** alone loads the ROM paused at `0100`; **Step** executes one instruction. Click a line number to toggle a breakpoint. Click the display to send keyboard/mouse input. Double-click a source filename to make it the entry file; `~library.tal` includes another source.
 
@@ -43,7 +44,7 @@ The regression suite covers assembly diagnostics, examples, stepping and stack m
 
 ## Deployment
 
-The Pages workflow builds and publishes the static `dist/` directory using GitHub Actions, with the `/ux/` base path. It runs on `main` and the initial implementation branch, and can be dispatched manually. In repository **Settings → Pages**, choose **GitHub Actions** as the source. Enabling Pages requires repository administration / Pages-write permission; a code-write token alone is insufficient.
+The Pages workflow builds the static `dist/` directory using GitHub Actions, with the `/ux/` base path. It runs checks on `main` and the initial implementation branch; only `main` publishes to Pages. It can also be dispatched manually. In repository **Settings → Pages**, choose **GitHub Actions** as the source. Enabling Pages requires repository administration / Pages-write permission; a code-write token alone is insufficient.
 
 ## Compatibility and limits
 

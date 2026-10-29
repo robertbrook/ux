@@ -10,6 +10,13 @@ colors:
   panel: "#f3f5f6"
   line: "#cbd2d8"
   muted: "#596672"
+  dark-bg: "#14191f"
+  dark-paper: "#1b2129"
+  dark-panel: "#222a34"
+  dark-text: "#dce4ec"
+  dark-muted: "#a4b2c0"
+  dark-line: "#3a4653"
+  dark-link: "#a3beff"
 typography:
   body:
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
@@ -76,6 +83,14 @@ The desk connects the real source editor to a live Varvara machine: source on th
 ## Colors
 
 The palette pairs cool, light neutrals with one decisive cobalt accent; neutral surfaces carry most of the interface.
+
+### Dark Mode
+
+The header's Dark mode toggle switches the same drafting-desk hierarchy to charcoal surfaces: page `#14191f`, work surfaces `#1b2129`, panel bars `#222a34`, dividers `#3a4653`, and text `#dce4ec`. Supporting text uses `#a4b2c0`; links and active details use a lighter blue `#a3beff`. The primary action retains cobalt with white text.
+
+Use the shared semantic CSS properties for all themed surfaces, syntax highlighting, focus, notices, saved states, tabs, dialogs, reference and inspection views. Set native controls' `color-scheme` with the active theme. The ROM controls its own palette; never invert or recolor the canvas or exported images.
+
+Until explicitly overridden, follow system color-scheme changes. Apply the saved preference before first paint and preserve it separately from project data. The toggle remains keyboard-operable and exposes its state through `aria-pressed`.
 
 ### Primary
 - **Instrument Cobalt**: The primary action, keyboard focus, active navigation, and links use the system's precise blue accent.
@@ -158,7 +173,7 @@ Use small, lightly rounded corners (3px) for controls and active rows. Keep pane
 - **Do** use borders and tonal surfaces to make dense work areas easy to scan.
 
 ### Don't:
-- **Don't** replace the light graphite-and-paper foundation with a dark or highly saturated overall palette.
+- **Don't** change the drafting-desk structure between themes or introduce a highly saturated overall palette.
 - **Don't** introduce competing accent colors for ordinary controls or selected states.
 - **Don't** use decorative imagery, gradients, or motion that competes with source or machine output.
 - **Don't** turn the workbench panels into floating cards with heavy shadows or pill-shaped controls.
