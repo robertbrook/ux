@@ -1,0 +1,17 @@
+{
+  "name": "ux-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "node scripts/build-core.mjs && vite build",
+    "test": "node scripts/build-core.mjs && node --test",
+    "test:browser": "playwright test",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "vite": "^7.2.2"
+  }
+}

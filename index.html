@@ -1,0 +1,81 @@
+<!doctype html>
+<!-- THESIS: An inspectable machine beside its source, not a marketing page.
+OWN-WORLD: Graphite drafting panels, paper canvas, cobalt actions, square instrument controls.
+STORY: Edit a real Uxntal program, assemble to bytes, run in WASM, inspect both stacks and devices.
+FIRST VIEWPORT: Project rail left; source and live screen share the desk; console and machine tray below.
+FORM: Technical drafting desk, candidate 6, seed 1d0e9949; connected source / instrument staging. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e9edf0">
+  <meta name="description" content="A browser-native Uxn, Uxntal and Varvara programming workbench powered by WebAssembly. Write, run, debug and explore.">
+  <title>ux — Uxn workbench</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%232448da'/%3E%3Cpath d='M14 18v20q0 12 12 12t12-12V18M44 18l12 32m0-32L44 50' fill='none' stroke='white' stroke-width='5'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip-link" href="#source">Skip to editor</a>
+  <header class="app-header">
+    <a class="brand" href="./" aria-label="ux workbench home">ux<span class="brand-dot">.</span></a>
+    <div class="identity"><strong>Uxn workbench</strong><span>Small machine. Open possibilities.</span></div>
+    <div class="header-end"><span class="wasm-label"><i></i> WebAssembly</span><button id="reference-toggle">Reference <span aria-hidden="true">↗</span></button><a href="https://github.com/robertbrook/ux" target="_blank" rel="noreferrer">Source ↗</a></div>
+  </header>
+  <main class="workspace">
+    <aside class="rail" aria-label="Project and examples">
+      <div class="rail-heading"><h2>Workspace</h2><button id="new-project" class="icon-button" aria-label="New project" title="New project">+</button></div>
+      <label class="sr-only" for="projects">Current project</label><select id="projects"></select>
+      <div class="project-actions"><button id="rename-project">Rename</button><button id="export-project">Export</button><button id="delete-project">Delete</button></div>
+      <div class="rail-heading"><h3>Source files</h3><button id="new-file" class="icon-button" aria-label="New source file">+</button></div>
+      <div id="source-files" class="file-list"></div>
+      <button id="import-button" class="import-button">↑ Import source, ROM or project</button>
+      <button id="examples-toggle" class="mobile-examples-button" aria-expanded="false">Example programs</button>
+      <input id="import" type="file" accept=".tal,.rom,.json,.bin,.txt" multiple hidden>
+      <div class="rail-heading examples-heading"><h3>Example programs</h3><span id="example-count">8</span></div>
+      <div id="examples" class="example-list"></div>
+      <div class="rail-foot"><span>Uxn / Uxntal / Varvara</span><p>Your workspace stays in this browser.<br>Export a project to keep a backup.</p><span id="save-status" role="status">Saved locally</span></div>
+    </aside>
+    <section class="desk" aria-label="Programming workbench">
+      <div class="toolbar">
+        <div class="toolbar-title"><span class="project-mark" aria-hidden="true">⌘</span><strong id="project-title">Interference</strong><span id="dirty-indicator"></span></div>
+        <div class="run-actions">
+          <button id="download-rom" title="Download assembled ROM" disabled>↓ ROM</button>
+          <button id="assemble" title="Assemble without running">Assemble</button>
+          <button id="run" class="primary" title="Assemble & run (Ctrl/⌘ Enter)"><span aria-hidden="true">▶</span> Assemble & run</button>
+        </div>
+      </div>
+      <div id="notice" class="notice" role="status" hidden></div>
+      <div class="split">
+        <section class="editor-panel" aria-label="Source editor">
+          <div class="panel-bar"><div class="file-tab"><span aria-hidden="true">≡</span><strong id="filename">interference.tal</strong></div><div class="editor-tools"><button id="find-toggle" title="Find in source">Find</button><button id="download-source" title="Download source">↓ .tal</button></div></div>
+          <div class="editor-context"><span id="entry-label">Entry point · 0100</span><label>Text size <select id="font-size"><option value="12">12</option><option value="13" selected>13</option><option value="14">14</option><option value="16">16</option><option value="18">18</option></select></label></div>
+          <div class="find-bar" id="find-bar" hidden><label class="sr-only" for="find-input">Find text</label><input id="find-input" placeholder="Find in source"><button id="find-next">Next</button><button id="find-close" aria-label="Close find">×</button></div>
+          <div class="code-editor">
+            <div id="gutter" class="gutter" aria-label="Line breakpoints"></div>
+            <div class="code-scroll"><pre id="highlight" aria-hidden="true"><code></code></pre><textarea id="source" aria-label="Uxntal source code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off"></textarea></div>
+          </div>
+          <div class="editor-footer"><span id="cursor-position">Ln 1, Col 1</span><span>Uxntal <span class="separator">/</span> UTF-8</span><span title="Keyboard shortcut">⌘ / Ctrl ↵ to run</span></div>
+        </section>
+        <section class="machine-panel" aria-label="Varvara machine">
+          <div class="panel-bar"><h2>Varvara display</h2><div class="display-actions"><button id="sound" aria-pressed="false">Sound off</button><button id="fullscreen" title="Fullscreen display" aria-label="Fullscreen display">⛶</button></div></div>
+          <div class="display-meta"><span id="dimensions">128 × 128</span><label>Scale <select id="scale"><option value="fit">Fit</option><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></label><button id="screenshot">Save image</button></div>
+          <div class="display-stage" id="display-stage"><canvas id="screen" width="128" height="128" tabindex="0" aria-label="Varvara display. Focus to send keyboard and mouse input."></canvas></div>
+          <div class="transport"><div class="transport-buttons"><button id="resume" title="Resume (F5)" aria-label="Resume execution">▶</button><button id="pause" title="Pause (F6)" aria-label="Pause execution">Ⅱ</button><button id="step" title="Step one instruction (F10)">Step <span aria-hidden="true">↦</span></button><button id="reset" title="Reset loaded ROM">↺ Reset</button></div><span class="machine-status" id="machine-status"><i></i> Starting</span></div>
+          <div class="machine-caption"><span>Click the display to send input</span><span id="rom-size">— bytes</span></div>
+        </section>
+      </div>
+      <section class="inspector" aria-label="Machine inspector">
+        <div class="inspector-top"><div role="tablist" aria-label="Inspector views" id="inspector-tabs"><button id="tab-console" role="tab" aria-selected="true" aria-controls="view-console" data-tab="console">Console <span id="console-count">0</span></button><button id="tab-debugger" role="tab" aria-selected="false" aria-controls="view-debugger" data-tab="debugger" tabindex="-1">Debugger</button><button id="tab-memory" role="tab" aria-selected="false" aria-controls="view-memory" data-tab="memory" tabindex="-1">Memory</button><button id="tab-devices" role="tab" aria-selected="false" aria-controls="view-devices" data-tab="devices" tabindex="-1">Devices</button><button id="tab-files" role="tab" aria-selected="false" aria-controls="view-files" data-tab="files" tabindex="-1">Virtual disk</button></div><span class="pc-readout" id="pc-readout">PC 0100</span></div>
+        <div id="view-console" role="tabpanel" aria-labelledby="tab-console" class="inspector-view console-view"><div class="console-tools"><span id="build-status">Ready to assemble</span><button id="clear-console">Clear</button></div><pre id="console" aria-label="Console output" tabindex="0"></pre><form id="console-form"><label for="console-input">stdin →</label><input id="console-input" placeholder="Send text to Console/read" autocomplete="off"><button type="submit">Send ↵</button></form></div>
+        <div id="view-debugger" role="tabpanel" aria-labelledby="tab-debugger" class="inspector-view debugger-view" hidden><div class="stack"><h3>Working stack <span id="wst-size">0 / 255</span></h3><div id="wst"></div></div><div class="stack"><h3>Return stack <span id="rst-size">0 / 255</span></h3><div id="rst"></div></div><div class="disassembly"><h3>Next instructions</h3><pre id="disassembly"></pre></div><div class="breakpoint-tools"><h3>Breakpoints</h3><p>Click a source line number to toggle a breakpoint.</p><label>Address <input id="break-address" placeholder="0100" maxlength="4"></label><button id="add-breakpoint">Add</button><div id="breakpoints"></div></div></div>
+        <div id="view-memory" role="tabpanel" aria-labelledby="tab-memory" class="inspector-view" hidden><div class="memory-tools"><label>Page <input id="memory-address" value="0100" maxlength="4"></label><button id="memory-go">Go</button><button id="memory-prev" aria-label="Previous memory page">←</button><button id="memory-next" aria-label="Next memory page">→</button><span>64 KiB address space · hexadecimal / ASCII</span></div><pre id="memory"></pre></div>
+        <div id="view-devices" role="tabpanel" aria-labelledby="tab-devices" class="inspector-view" hidden><div id="devices"></div></div>
+        <div id="view-files" role="tabpanel" aria-labelledby="tab-files" class="inspector-view" hidden><div class="console-tools"><span>Virtual files are isolated from your computer and saved with this project.</span><button id="upload-disk">↑ Add files</button><input id="disk-input" type="file" multiple hidden></div><div id="disk-files"></div></div>
+      </section>
+      <footer class="statusbar"><span id="runtime-status">Loading WebAssembly core…</span><span id="execution-location">Local execution · no server</span><span id="instruction-count">0 instructions</span></footer>
+    </section>
+    <aside class="reference-panel" id="reference" aria-label="Programming reference" hidden><div class="panel-bar"><h2>Field reference</h2><button id="reference-close" aria-label="Close reference">×</button></div><div id="reference-content"></div></aside>
+  </main>
+  <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">Name</h2><label for="dialog-input" id="dialog-label">Name</label><input id="dialog-input" required autocomplete="off"><p id="dialog-description"></p><div class="dialog-actions"><button value="cancel" formnovalidate>Cancel</button><button value="confirm" class="primary">Save</button></div></form></dialog>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
