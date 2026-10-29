@@ -1,14 +1,14 @@
 <!doctype html>
-<!-- THESIS: An inspectable machine beside its source, not a marketing page.
-OWN-WORLD: Graphite drafting panels, paper canvas, cobalt actions, square instrument controls.
-STORY: Edit a real Uxntal program, assemble to bytes, run in WASM, inspect both stacks and devices.
-FIRST VIEWPORT: Project rail left; source and live screen share the desk; console and machine tray below.
-FORM: Technical drafting desk, candidate 6, seed 1d0e9949; connected source / instrument staging. -->
+<!-- THESIS: An inspectable machine beside its source, using stock Bootstrap 6.
+OWN-WORLD: Bootstrap's default light/dark palette, grid, controls, menus and utilities only.
+STORY: Edit Uxntal, run in WASM, inspect the machine or experiment in an isolated REPL.
+FIRST VIEWPORT: Project rail left; source and display paired; inspection tray below.
+FORM: Familiar Bootstrap workbench, explicitly requested by the user. No custom CSS. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#e9edf0">
+  <meta name="theme-color" content="#ffffff">
   <script>
     (() => {
       let preference = null;
@@ -22,83 +22,133 @@ FORM: Technical drafting desk, candidate 6, seed 1d0e9949; connected source / in
         console.warn('Theme preference could not be read:', error);
       }
       const theme = preference || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.bsTheme = theme;
       document.documentElement.dataset.theme = theme;
       document.documentElement.dataset.themePreference = preference || 'system';
-      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#14191f' : '#e9edf0';
+      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#212529' : '#ffffff';
     })();
   </script>
   <meta name="description" content="A browser-native Uxn, Uxntal and Varvara programming workbench powered by WebAssembly. Write, run, debug and explore.">
   <title>ux — Uxn workbench</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%232448da'/%3E%3Cpath d='M14 18v20q0 12 12 12t12-12V18M44 18l12 32m0-32L44 50' fill='none' stroke='white' stroke-width='5'/%3E%3C/svg%3E">
 </head>
-<body>
-  <a class="skip-link" href="#source">Skip to editor</a>
-  <header class="app-header">
-    <a class="brand" href="./" aria-label="ux workbench home">ux<span class="brand-dot">.</span></a>
-    <div class="identity"><strong>Uxn workbench</strong></div>
-    <div class="header-end"><button id="theme-toggle" aria-label="Dark mode" aria-pressed="false" title="Switch to dark mode"><span aria-hidden="true">◐</span></button><button id="reference-toggle">Reference <span aria-hidden="true">↗</span></button><a href="https://github.com/robertbrook/ux" target="_blank" rel="noreferrer">Source ↗</a></div>
+<body class="bg-1">
+  <a class="visually-hidden-focusable d-block bg-body p-3" href="#source">Skip to editor</a>
+  <header class="app-header navbar bg-body border-bottom px-3 py-3">
+    <div class="container-fluid gap-3 flex-wrap">
+      <a class="navbar-brand fw-bold m-0" href="./" aria-label="ux workbench home">ux.</a>
+      <strong class="text-sm me-auto">Uxn workbench</strong>
+      <div class="d-flex gap-2 align-items-center">
+        <button id="theme-toggle" class="btn-outline btn-sm" aria-label="Dark mode" aria-pressed="false" title="Switch to dark mode"><span aria-hidden="true">◐</span></button>
+        <button id="reference-toggle" class="btn-outline btn-sm" aria-expanded="false">Reference</button>
+        <a class="btn-text btn-sm d-none sm:d-inline-flex" href="https://github.com/robertbrook/ux" target="_blank" rel="noreferrer">Source ↗</a>
+      </div>
+    </div>
   </header>
-  <main class="workspace">
-    <aside class="rail" aria-label="Project and examples">
-      <div class="rail-heading"><h2>Workspace</h2></div>
-      <label class="sr-only" for="projects">Current project</label><select id="projects"></select>
-      <button id="project-options" popovertarget="project-menu" aria-label="Project actions">Project ···</button>
-      <div id="project-menu" class="action-menu" popover aria-label="Project actions"><button id="new-project">New project</button><button id="rename-project">Rename project</button><button id="delete-project">Delete project</button></div>
-      <div class="rail-heading source-heading"><h3>Source files</h3><button id="new-file" class="icon-button" aria-label="New source file">+</button></div>
-      <div id="source-files" class="file-list"></div>
-      <button id="import-button" class="import-button">↑ Import source, ROM or project</button>
-      <input id="import" type="file" accept=".tal,.rom,.json,.bin,.txt" multiple hidden>
-      <details id="example-programs" class="example-programs" open><summary>Example programs <span id="example-count">8</span></summary><div id="examples" class="example-list"></div></details>
-      <div class="rail-foot"><span>Uxn / Uxntal / Varvara</span><p>Your workspace stays in this browser.<br>Export a project to keep a backup.</p><span id="save-status" role="status">Saved locally</span></div>
-    </aside>
-    <section class="desk" aria-label="Programming workbench">
-      <div class="toolbar">
-        <div class="toolbar-title"><span class="project-mark" aria-hidden="true">⌘</span><strong id="project-title">Interference</strong><span id="dirty-indicator"></span></div>
-        <div class="run-actions">
-          <button id="export-toggle" popovertarget="export-menu">Export</button>
-          <div id="export-menu" class="action-menu" popover aria-label="Export"><button id="export-project">Project (.ux.json)</button><button id="download-source">Current source (.tal)</button><button id="download-rom" disabled>ROM (.rom)</button><button id="screenshot" disabled>Screen image (.png)</button></div>
-          <div class="run-group"><button id="run" class="primary" title="Assemble & run (Ctrl/⌘ Enter)"><span aria-hidden="true">▶</span> Run</button><button class="primary run-options" popovertarget="run-menu" aria-label="Run options">⌄</button></div>
-          <div id="run-menu" class="action-menu" popover aria-label="Run options"><button id="assemble" title="Load the program paused at its entry point">Assemble only</button></div>
-        </div>
-      </div>
-      <div id="notice" class="notice" role="status" hidden></div>
-      <div class="split">
-        <section class="editor-panel" aria-label="Source editor">
-          <div class="panel-bar"><div class="file-tab"><span aria-hidden="true">≡</span><strong id="filename">interference.tal</strong></div><div class="editor-tools"><button id="find-toggle" title="Find in source">Find</button><button popovertarget="editor-settings" aria-label="Editor settings">···</button></div></div>
-          <div id="editor-settings" class="action-menu settings-menu" popover aria-label="Editor settings"><label>Text size <select id="font-size"><option value="12">12</option><option value="13">13</option><option value="14" selected>14</option><option value="16">16</option><option value="18">18</option></select></label></div>
-          <div class="editor-context"><span id="entry-label">Entry point · 0100</span></div>
-          <div class="find-bar" id="find-bar" hidden><label class="sr-only" for="find-input">Find text</label><input id="find-input" placeholder="Find in source"><button id="find-next">Next</button><button id="find-close" aria-label="Close find">×</button></div>
-          <div class="code-editor">
-            <div id="gutter" class="gutter" aria-label="Line breakpoints"></div>
-            <div class="code-scroll"><pre id="highlight" aria-hidden="true"><code></code></pre><textarea id="source" aria-label="Uxntal source code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off"></textarea></div>
+  <main class="container-fluid p-3 lg:p-5">
+    <div class="row g-4">
+      <aside class="col-12 md:col-3 xl:col-2" aria-label="Project and examples">
+        <div class="d-flex flex-column gap-3">
+          <h2 class="h6 mb-0">Workspace</h2>
+          <div class="d-flex gap-2 min-w-0">
+            <label class="visually-hidden" for="projects">Current project</label><select id="projects" class="form-control form-control-sm min-w-0"></select>
+            <button id="project-options" class="btn-outline btn-sm" data-bs-toggle="menu" data-bs-menu="#project-menu" aria-label="Project actions" aria-expanded="false">···</button>
+            <div id="project-menu" class="menu" aria-label="Project actions"><button id="new-project" class="menu-item">New project</button><button id="rename-project" class="menu-item">Rename project</button><button id="delete-project" class="menu-item theme-danger">Delete project</button></div>
           </div>
-          <div class="editor-footer"><span id="cursor-position">Ln 1, Col 1</span><span title="Keyboard shortcut">⌘ / Ctrl ↵ to run</span></div>
-        </section>
-        <section class="machine-panel" aria-label="Varvara machine">
-          <div class="panel-bar"><h2>Varvara display</h2><div class="display-actions"><button id="sound" aria-pressed="false">Sound off</button><button id="fullscreen" title="Fullscreen display" aria-label="Fullscreen display">⛶</button><button popovertarget="display-settings" aria-label="Display settings">···</button></div></div>
-          <div id="display-settings" class="action-menu settings-menu" popover aria-label="Display settings"><label>Display scale <select id="scale"><option value="fit">Fit</option><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></label></div>
-          <div class="display-meta"><span id="dimensions">128 × 128</span></div>
-          <div class="display-stage" id="display-stage"><canvas id="screen" width="128" height="128" tabindex="0" aria-label="Varvara display. Focus to send keyboard and mouse input."></canvas></div>
-          <div class="transport"><div class="transport-buttons"><button id="execution-toggle" title="Pause (F6)" disabled>Pause</button><button id="reset" title="Reset loaded ROM">↺ Reset</button></div><span class="machine-status" id="machine-status"><i></i> Starting</span></div>
-          <div class="machine-caption"><span>Click the display to send input</span><span id="rom-size">— bytes</span></div>
-        </section>
-      </div>
-      <section class="inspector" aria-label="Machine inspector">
-        <div class="inspector-top"><div role="tablist" aria-label="Inspector views" id="inspector-tabs"><button id="tab-console" role="tab" aria-selected="true" aria-controls="view-console" data-tab="console">Console <span id="console-count">0</span></button><button id="tab-debug" role="tab" aria-selected="false" aria-controls="view-debug" data-tab="debug" tabindex="-1">Debug</button><button id="tab-files" role="tab" aria-selected="false" aria-controls="view-files" data-tab="files" tabindex="-1">Virtual disk</button></div><span class="pc-readout" id="pc-readout" hidden>PC 0100</span></div>
-        <div id="view-console" role="tabpanel" aria-labelledby="tab-console" class="inspector-view console-view"><div class="console-tools"><span id="build-status">Ready to assemble</span><button id="clear-console">Clear</button></div><pre id="console" aria-label="Console output" tabindex="0"></pre><form id="console-form"><label for="console-input">stdin →</label><input id="console-input" placeholder="Send text to Console/read" autocomplete="off"><button type="submit">Send ↵</button></form></div>
-        <div id="view-debug" role="tabpanel" aria-labelledby="tab-debug" hidden>
-        <div class="debug-toolbar"><div id="debug-tabs" role="tablist" aria-label="Debug views"><button id="tab-debugger" role="tab" aria-selected="true" aria-controls="view-debugger" data-tab="debugger">Stacks</button><button id="tab-memory" role="tab" aria-selected="false" aria-controls="view-memory" data-tab="memory" tabindex="-1">Memory</button><button id="tab-devices" role="tab" aria-selected="false" aria-controls="view-devices" data-tab="devices" tabindex="-1">Devices</button></div><button id="step" title="Step one instruction (F10)">Step ↦</button></div>
-        <div id="view-debugger" role="tabpanel" aria-labelledby="tab-debugger" class="inspector-view debugger-view"><div class="stack"><h3>Working stack <span id="wst-size">0 / 255</span></h3><div id="wst"></div></div><div class="stack"><h3>Return stack <span id="rst-size">0 / 255</span></h3><div id="rst"></div></div><div class="disassembly"><h3>Next instructions</h3><pre id="disassembly"></pre></div><div class="breakpoint-tools"><h3>Breakpoints</h3><p>Click a source line number to toggle a breakpoint.</p><label>Address <input id="break-address" placeholder="0100" maxlength="4"></label><button id="add-breakpoint">Add</button><div id="breakpoints"></div></div></div>
-        <div id="view-memory" role="tabpanel" aria-labelledby="tab-memory" class="inspector-view" hidden><div class="memory-tools"><label>Page <input id="memory-address" value="0100" maxlength="4"></label><button id="memory-go">Go</button><button id="memory-prev" aria-label="Previous memory page">←</button><button id="memory-next" aria-label="Next memory page">→</button><span>64 KiB address space · hexadecimal / ASCII</span></div><pre id="memory"></pre></div>
-        <div id="view-devices" role="tabpanel" aria-labelledby="tab-devices" class="inspector-view" hidden><div id="devices"></div></div>
+          <div class="d-flex align-items-center justify-content-between mt-2"><h3 class="h6 mb-0">Source files</h3><button id="new-file" class="btn-text btn-sm" aria-label="New source file">+</button></div>
+          <div id="source-files" class="d-flex flex-column gap-1 min-w-0"></div>
+          <button id="import-button" class="btn-outline btn-sm text-wrap">Import source, ROM or project</button>
+          <input id="import" type="file" accept=".tal,.rom,.json,.bin,.txt" multiple hidden>
+          <details id="example-programs" open><summary class="text-sm fw-semibold py-2">Example programs <span id="example-count" class="badge ms-1">8</span></summary><div id="examples" class="d-flex flex-column gap-1"></div></details>
+          <div class="text-xs fg-2 d-none md:d-block"><p>Your workspace stays in this browser. Export a project to keep a backup.</p><span id="save-status" class="fg-success" role="status">Saved locally</span></div>
         </div>
-        <div id="view-files" role="tabpanel" aria-labelledby="tab-files" class="inspector-view" hidden><div class="console-tools"><span>Virtual files are isolated from your computer and saved with this project.</span><button id="upload-disk">↑ Add files</button><input id="disk-input" type="file" multiple hidden></div><div id="disk-files"></div></div>
+      </aside>
+      <section class="col-12 md:col-9 xl:col-10 min-w-0" aria-label="Programming workbench">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div class="d-flex flex-wrap align-items-center gap-2 min-w-0"><h1 id="project-title" class="h5 mb-0 text-break">Interference</h1><span id="dirty-indicator" class="text-xs fg-2"></span></div>
+          <div class="d-flex align-items-center gap-2 ms-auto">
+            <button id="export-toggle" class="btn-outline btn-sm" data-bs-toggle="menu" data-bs-menu="#export-menu" aria-expanded="false">Export</button>
+            <div id="export-menu" class="menu" aria-label="Export"><button id="export-project" class="menu-item">Project (.ux.json)</button><button id="download-source" class="menu-item">Current source (.tal)</button><button id="download-rom" class="menu-item" disabled>ROM (.rom)</button><button id="screenshot" class="menu-item" disabled>Screen image (.png)</button></div>
+            <div class="btn-group"><button id="run" class="btn-solid theme-primary btn-sm" title="Assemble & run (Ctrl/⌘ Enter)">Run</button><button class="btn-solid theme-primary btn-sm" data-bs-toggle="menu" data-bs-menu="#run-menu" aria-label="Run options" aria-expanded="false">⌄</button></div>
+            <div id="run-menu" class="menu" aria-label="Run options"><button id="assemble" class="menu-item" title="Load the program paused at its entry point">Assemble only</button></div>
+          </div>
+        </div>
+        <div id="notice" class="alert theme-info" role="status" hidden></div>
+        <div class="row g-4">
+          <section class="col-12 lg:col-6 min-w-0" aria-label="Source editor">
+            <div class="border rounded bg-body overflow-hidden h-100">
+              <div class="d-flex align-items-center justify-content-between gap-2 bg-2 border-bottom px-3 py-2">
+                <strong id="filename" class="font-monospace text-sm text-truncate">interference.tal</strong>
+                <div class="d-flex gap-1"><button id="find-toggle" class="btn-text btn-sm">Find</button><button class="btn-text btn-sm" data-bs-toggle="menu" data-bs-menu="#editor-settings" aria-label="Editor settings" aria-expanded="false">···</button></div>
+              </div>
+              <div id="editor-settings" class="menu p-3" aria-label="Editor settings"><form><label class="form-label text-sm" for="font-size">Text size</label><select id="font-size" class="form-control form-control-sm"><option value="text-xs">12</option><option value="text-sm" selected>14</option><option value="text-md">16</option><option value="text-lg">18–20</option></select></form></div>
+              <div class="editor-context px-3 py-2 text-xs fg-2 text-break"><span id="entry-label">Entry · main.tal · 0100</span></div>
+              <div id="find-bar" class="p-2 border-bottom" hidden><div class="d-flex gap-1"><label class="visually-hidden" for="find-input">Find text</label><input id="find-input" class="form-control form-control-sm min-w-0" placeholder="Find in source"><button id="find-next" class="btn-outline btn-sm">Next</button><button id="find-close" class="btn-text btn-sm" aria-label="Close find">×</button></div></div>
+              <div class="d-flex border-y min-w-0">
+                <div class="position-relative flex-shrink-0 bg-1">
+                  <span id="gutter-width" class="invisible font-monospace text-sm px-2">00</span>
+                  <div id="gutter" class="position-absolute top-0 start-0 w-100 h-100 overflow-hidden py-2" aria-label="Line breakpoints"></div>
+                </div>
+                <textarea id="source" class="form-control border-0 rounded-0 p-2 min-w-0 font-monospace text-sm text-nowrap lh-lg" rows="18" aria-label="Uxntal source code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off"></textarea>
+              </div>
+              <div class="editor-footer d-flex justify-content-between flex-wrap gap-2 p-2 text-xs fg-2"><span id="cursor-position">Ln 1, Col 1</span><span>Ctrl / ⌘ Enter to run</span></div>
+              <details class="border-top p-3"><summary class="text-xs fg-2">Syntax preview</summary><pre id="highlight" class="font-monospace text-sm lh-lg overflow-auto mb-0 mt-2" aria-label="Highlighted source"><code></code></pre></details>
+            </div>
+          </section>
+          <section class="col-12 lg:col-6 min-w-0" aria-label="Varvara machine">
+            <div class="border rounded bg-body overflow-hidden">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 bg-2 border-bottom px-3 py-2"><h2 class="h6 mb-0">Varvara display</h2><div class="d-flex gap-1"><button id="sound" class="btn-text btn-sm" aria-pressed="false">Sound off</button><button id="fullscreen" class="btn-text btn-sm" title="Fullscreen display" aria-label="Fullscreen display">⛶</button><button class="btn-text btn-sm" data-bs-toggle="menu" data-bs-menu="#display-settings" aria-label="Display settings" aria-expanded="false">···</button></div></div>
+              <div id="display-settings" class="menu p-3" aria-label="Display settings"><form><label class="form-label text-sm" for="scale">Display scale</label><select id="scale" class="form-control form-control-sm"><option value="fit">Fit</option><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></form></div>
+              <div class="px-3 py-2 text-xs fg-2"><span id="dimensions">128 × 128</span></div>
+              <div id="display-stage" class="ratio-4x3 d-flex align-items-center justify-content-center overflow-auto bg-black p-3"><canvas id="screen" class="d-block flex-shrink-0" width="128" height="128" tabindex="0" aria-label="Varvara display. Focus to send keyboard and mouse input."></canvas></div>
+              <canvas id="screen-raw" width="128" height="128" hidden></canvas>
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 border-top bg-1"><div class="d-flex gap-1"><button id="execution-toggle" class="btn-outline btn-sm" disabled>Pause</button><button id="reset" class="btn-outline btn-sm">Reset</button></div><span id="machine-status" class="badge">Starting</span></div>
+              <div class="d-flex justify-content-between flex-wrap gap-2 p-2 text-xs fg-2"><span>Click the display to send input</span><span id="rom-size">— bytes</span></div>
+            </div>
+          </section>
+        </div>
+        <section class="inspector border rounded bg-body mt-4 overflow-hidden" aria-label="Machine inspector">
+          <div class="d-flex align-items-center justify-content-between gap-2 bg-2 border-bottom px-2">
+            <div role="tablist" aria-label="Inspector views" id="inspector-tabs" class="nav nav-underline flex-nowrap overflow-x-auto">
+              <button id="tab-console" class="nav-link active text-sm text-nowrap" role="tab" aria-selected="true" aria-controls="view-console" data-tab="console">Console <span id="console-count" class="badge">0</span></button>
+              <button id="tab-repl" class="nav-link text-sm text-nowrap" role="tab" aria-selected="false" aria-controls="view-repl" data-tab="repl" tabindex="-1">REPL</button>
+              <button id="tab-debug" class="nav-link text-sm text-nowrap" role="tab" aria-selected="false" aria-controls="view-debug" data-tab="debug" tabindex="-1">Debug</button>
+              <button id="tab-files" class="nav-link text-sm text-nowrap" role="tab" aria-selected="false" aria-controls="view-files" data-tab="files" tabindex="-1">Virtual disk</button>
+            </div>
+            <span class="font-monospace text-xs fg-2 d-none lg:d-inline" id="pc-readout" hidden>PC 0100</span>
+          </div>
+          <div id="view-console" role="tabpanel" aria-labelledby="tab-console" class="p-3">
+            <div class="d-flex justify-content-between align-items-center gap-2 text-xs fg-2"><span id="build-status">Ready to assemble</span><button id="clear-console" class="btn-text btn-sm">Clear</button></div>
+            <textarea id="console" class="form-control font-monospace text-sm border-0 my-2" rows="4" aria-label="Console output" readonly></textarea>
+            <form id="console-form" class="d-flex align-items-center gap-2 border-top pt-2"><label for="console-input" class="font-monospace text-xs fg-2">stdin</label><input id="console-input" class="form-control form-control-sm min-w-0" placeholder="Send text to Console/read" autocomplete="off"><button type="submit" class="btn-outline btn-sm">Send</button></form>
+          </div>
+          <div id="view-repl" role="tabpanel" aria-labelledby="tab-repl" class="p-3" hidden>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><p class="text-sm fg-2 mb-0">Scratch machine. Stacks and memory stay between entries; your project is untouched.</p><div class="d-flex gap-1"><button id="repl-clear" class="btn-text btn-sm">Clear output</button><button id="repl-reset" class="btn-outline btn-sm">Reset REPL</button></div></div>
+            <div class="row g-3 py-3 border-bottom"><div class="col-6"><h3 class="h6">Working stack</h3><output id="repl-wst" class="font-monospace text-sm text-break">Empty</output></div><div class="col-6"><h3 class="h6">Return stack</h3><output id="repl-rst" class="font-monospace text-sm text-break">Empty</output></div><div class="col-12 text-xs fg-2">Next code <code id="repl-next">0100</code></div></div>
+            <textarea id="repl-output" class="form-control font-monospace text-sm border-0 my-3" rows="6" aria-label="REPL transcript" readonly></textarea>
+            <form id="repl-form" aria-busy="false" class="border-top pt-3"><label for="repl-input" class="form-label text-sm">Uxntal</label><textarea id="repl-input" class="form-control font-monospace text-sm" rows="2" maxlength="32768" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="repl-help" placeholder="#03 #04 ADD"></textarea><div class="d-flex align-items-center flex-wrap gap-2 mt-2"><span id="repl-status" class="text-xs fg-2 me-auto" role="status">Open REPL to start</span><button id="repl-stop" class="btn-outline btn-sm" type="button" disabled>Stop</button><button id="repl-eval" class="btn-solid theme-primary btn-sm" type="submit" disabled>Evaluate</button></div></form>
+            <p id="repl-help" class="text-xs fg-2 mt-3 mb-0">Enter evaluates; Shift+Enter adds a line. Up/Down recalls history at the start/end. Try #03 #04 ADD, then #02 MUL. Values are hexadecimal.</p>
+          </div>
+          <div id="view-debug" role="tabpanel" aria-labelledby="tab-debug" class="p-3" hidden>
+            <div class="d-flex align-items-center justify-content-between gap-2 border-bottom pb-3 mb-3"><div id="debug-tabs" class="nav nav-pills flex-nowrap" role="tablist" aria-label="Debug views"><button id="tab-debugger" class="nav-link active text-sm" role="tab" aria-selected="true" aria-controls="view-debugger" data-tab="debugger">Stacks</button><button id="tab-memory" class="nav-link text-sm" role="tab" aria-selected="false" aria-controls="view-memory" data-tab="memory" tabindex="-1">Memory</button><button id="tab-devices" class="nav-link text-sm" role="tab" aria-selected="false" aria-controls="view-devices" data-tab="devices" tabindex="-1">Devices</button></div><button id="step" class="btn-outline btn-sm" title="Step one instruction (F10)">Step</button></div>
+            <div id="view-debugger" role="tabpanel" aria-labelledby="tab-debugger">
+              <div class="row g-4">
+                <div class="col-6 xl:col-3 min-w-0"><h3 class="h6">Working stack <span id="wst-size" class="text-xs fg-2">0 / 255</span></h3><div id="wst" class="d-flex flex-wrap gap-1 font-monospace text-sm"></div></div>
+                <div class="col-6 xl:col-3 min-w-0"><h3 class="h6">Return stack <span id="rst-size" class="text-xs fg-2">0 / 255</span></h3><div id="rst" class="d-flex flex-wrap gap-1 font-monospace text-sm"></div></div>
+                <div class="col-12 sm:col-6 xl:col-3 min-w-0"><h3 class="h6">Next instructions</h3><pre id="disassembly" class="font-monospace text-sm overflow-auto mb-0"></pre></div>
+                <div class="col-12 sm:col-6 xl:col-3 min-w-0"><h3 class="h6">Breakpoints</h3><p class="text-xs fg-2">Click a source line number to toggle a breakpoint.</p><div class="d-flex gap-2 align-items-center"><label for="break-address" class="text-xs">Address</label><input id="break-address" class="form-control form-control-sm min-w-0" placeholder="0100" maxlength="4"><button id="add-breakpoint" class="btn-outline btn-sm">Add</button></div><div id="breakpoints" class="d-flex flex-wrap gap-1 mt-2"></div></div>
+              </div>
+            </div>
+            <div id="view-memory" role="tabpanel" aria-labelledby="tab-memory" hidden><div class="d-flex flex-wrap align-items-center gap-2 mb-3"><label for="memory-address" class="text-sm">Page</label><input id="memory-address" class="form-control form-control-sm w-auto" value="0100" size="4" maxlength="4"><button id="memory-go" class="btn-outline btn-sm">Go</button><button id="memory-prev" class="btn-text btn-sm" aria-label="Previous memory page">←</button><button id="memory-next" class="btn-text btn-sm" aria-label="Next memory page">→</button><span class="text-xs fg-2">64 KiB · hexadecimal / ASCII</span></div><pre id="memory" class="font-monospace text-xs overflow-auto mb-0"></pre></div>
+            <div id="view-devices" role="tabpanel" aria-labelledby="tab-devices" hidden><div id="devices" class="row g-4"></div></div>
+          </div>
+          <div id="view-files" role="tabpanel" aria-labelledby="tab-files" class="p-3" hidden><div class="d-flex justify-content-between align-items-center flex-wrap gap-2 text-sm fg-2"><span>Virtual files are isolated from your computer and saved with this project.</span><button id="upload-disk" class="btn-outline btn-sm">Add files</button><input id="disk-input" type="file" multiple hidden></div><div id="disk-files"></div></div>
+        </section>
+        <footer class="statusbar d-flex justify-content-between flex-wrap gap-2 py-3 text-xs fg-2"><span id="runtime-status">Loading runtime…</span><span id="instruction-count" hidden>0 instructions</span></footer>
       </section>
-      <footer class="statusbar"><span id="runtime-status">Loading runtime…</span><span id="instruction-count" hidden>0 instructions</span></footer>
-    </section>
-    <aside class="reference-panel" id="reference" aria-label="Programming reference" hidden><div class="panel-bar"><h2>Field reference</h2><button id="reference-close" aria-label="Close reference">×</button></div><div id="reference-content"></div></aside>
+    </div>
   </main>
-  <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">Name</h2><label for="dialog-input" id="dialog-label">Name</label><input id="dialog-input" required autocomplete="off"><p id="dialog-description"></p><div class="dialog-actions"><button value="cancel" formnovalidate>Cancel</button><button value="confirm" class="primary">Save</button></div></form></dialog>
+  <dialog id="reference" class="dialog dialog-lg dialog-scrollable dialog-instant" aria-label="Programming reference" hidden><div class="dialog-header"><h2 class="dialog-title h5">Field reference</h2><button id="reference-close" class="btn-text btn-sm" aria-label="Close reference">×</button></div><div id="reference-content" class="dialog-body text-sm"></div></dialog>
+  <dialog id="name-dialog" class="dialog dialog-instant" hidden><form method="dialog"><div class="dialog-header"><h2 id="dialog-title" class="dialog-title h5">Name</h2></div><div class="dialog-body"><label for="dialog-input" id="dialog-label" class="form-label">Name</label><input id="dialog-input" class="form-control" required autocomplete="off"><p id="dialog-description" class="text-sm fg-2 mt-3 mb-0"></p></div><div class="dialog-footer"><button class="btn-outline" value="cancel" formnovalidate>Cancel</button><button value="confirm" class="btn-solid theme-primary">Save</button></div></form></dialog>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

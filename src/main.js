@@ -1,8 +1,10 @@
-import './style.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import Menu from 'bootstrap/js/dist/menu.js';
 import { examples } from './examples.js';
 import { instruction } from './assembler.js';
 import { referenceHTML, deviceNames } from './reference.js';
 import { AudioEngine } from './audio.js';
+import { initRepl } from './repl.js';
 
 const $ = id => document.getElementById(id);
 const hex = (n, size = 2) => (n || 0).toString(16).padStart(size, '0');
@@ -11,18 +13,22 @@ const encode = bytes => { let text = ''; for (const byte of bytes) text += Strin
 const decode = text => Uint8Array.from(atob(text), c => c.charCodeAt(0));
 const key = 'ux-workbench-v1';
 const source = $('source'), screen = $('screen'), context = screen.getContext('2d');
+const rawScreen = $('screen-raw'), rawContext = rawScreen.getContext('2d');
 let store, current, worker, compiled, state, sourceMap = {}, labels = {}, breakpoints = new Set(), lineBreakpoints = new Set();
-let activeTab = 'console', debugTab = 'debugger', consoleText = '', buildTime = 0, loaded = false, saveTimer, memoryPage = 0x100;
+let activeTab = 'console', debugTab = 'debugger', consoleText = '', consoleKind = '', buildTime = 0, loaded = false, saveTimer, memoryPage = 0x100;
 let buttons = 0, mouseButtons = 0, loadingTimer, lastFrame, saveBlocked = false, startupError = '', recoveryData = '';
 const audio = new AudioEngine(message => worker?.postMessage(message));
+const openRepl = initRepl();
 const systemTheme = matchMedia('(prefers-color-scheme: dark)');
 let themePreference = document.documentElement.dataset.themePreference;
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.bsTheme = theme;
   document.documentElement.dataset.themePreference = themePreference;
   $('theme-toggle').setAttribute('aria-pressed', String(theme === 'dark'));
   $('theme-toggle').title = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
-  document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#14191f' : '#e9edf0';
+  $('theme-toggle').classList.toggle('active', theme === 'dark');
+  document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#212529' : '#ffffff';
 }
 applyTheme(themePreference === 'system'
   ? systemTheme.matches ? 'dark' : 'light'
@@ -44,13 +50,16 @@ window.addEventListener('storage', event => {
 function report(message, error = false) {
   $('notice').textContent = message; $('notice').hidden = !message;
   $('notice').dataset.error = String(error);
+  $('notice').className = 'alert ' + (error ? 'theme-danger' : 'theme-info');
 }
 function log(text, kind = '') {
   const atBottom = $('console').scrollHeight - $('console').scrollTop - $('console').clientHeight < 30;
-  const span = document.createElement('span'); span.className = kind; span.textContent = text;
-  $('console').append(span); consoleText += text;
-  while ($('console').childNodes.length > 2000) $('console').firstChild.remove();
+  if (kind === 'error' && consoleKind !== 'error') text = '[stderr] ' + text;
+  if (kind !== 'error' && consoleKind === 'error') text = '\n' + text;
+  consoleKind = kind;
+  consoleText += text;
   if (consoleText.length > 64000) consoleText = consoleText.slice(-64000);
+  $('console').value = consoleText;
   if (atBottom) $('console').scrollTop = $('console').scrollHeight;
   $('console-count').textContent = String(consoleText.split('\n').length - 1);
 }
@@ -66,8 +75,10 @@ function persist() {
   try {
     localStorage.setItem(key, JSON.stringify(store));
     $('save-status').textContent = 'Saved locally'; $('save-status').dataset.error = 'false';
+    $('save-status').className = 'fg-success';
   } catch (error) {
     $('save-status').textContent = 'Not saved — export a backup'; $('save-status').dataset.error = 'true';
+    $('save-status').className = 'fg-danger';
     report(`Browser storage failed: ${error.message}. Export your project now to preserve changes.`, true);
   }
 }
@@ -91,25 +102,34 @@ function renderProjects() {
   $('projects').replaceChildren(...store.projects.map(p => new Option(p.name, p.id, false, p.id === current.id)));
   $('project-title').textContent = current.name;
 }
+function configureMenu(toggle) {
+  const menu = document.querySelector(toggle.dataset.bsMenu);
+  menu.classList.add('transition-none');
+  new Menu(toggle, { menu, strategy: 'fixed', container: document.body });
+}
 function renderFiles() {
+  for (const toggle of $('source-files').querySelectorAll('[data-bs-toggle="menu"]')) Menu.getInstance(toggle)?.dispose();
   $('source-files').replaceChildren();
   for (const [index, name] of Object.keys(current.sources).entries()) {
-    const row = document.createElement('div'); row.className = 'file-row' + (name === current.active ? ' active' : '');
+    const row = document.createElement('div'); row.className = 'file-row d-flex min-w-0 rounded' + (name === current.active ? ' bg-subtle-primary' : '');
     const button = document.createElement('button'); button.textContent = name; button.title = `${name}${name === current.entry ? ' (entry file)' : ''}`;
+    button.className = 'btn-text btn-sm font-monospace text-truncate flex-grow-1 text-start min-w-0';
     button.onclick = () => { persist(); current.active = name; source.value = current.sources[name]; renderEditor(); renderFiles(); persist(); };
     row.append(button);
     if (!current.rom) {
-      const options = document.createElement('button'); options.textContent = '···'; options.setAttribute('aria-label', `Actions for ${name}`);
-      const menu = document.createElement('div'); menu.className = 'action-menu'; menu.id = `file-menu-${index}`; menu.setAttribute('popover', ''); menu.setAttribute('aria-label', `Actions for ${name}`);
-      options.setAttribute('popovertarget', menu.id);
+      const options = document.createElement('button'); options.className = 'btn-text btn-sm'; options.textContent = '···'; options.setAttribute('aria-label', `Actions for ${name}`);
+      const menu = document.createElement('div'); menu.className = 'menu'; menu.id = `file-menu-${index}`; menu.setAttribute('aria-label', `Actions for ${name}`);
+      options.dataset.bsToggle = 'menu'; options.dataset.bsMenu = `#${menu.id}`; options.setAttribute('aria-expanded', 'false');
       const entry = document.createElement('button'); entry.textContent = name === current.entry ? 'Entry file' : 'Set as entry'; entry.disabled = name === current.entry;
+      entry.className = 'menu-item';
       entry.onclick = () => {
-        persist(); current.entry = name; menu.hidePopover(); renderFiles(); renderEditor(); persist();
+        persist(); current.entry = name; renderFiles(); renderEditor(); persist();
         report(`Entry file set to ${name}`);
         $('source-files').querySelectorAll('.file-row > button:first-child')[index]?.focus();
       };
       menu.append(entry);
       const remove = document.createElement('button'); remove.setAttribute('aria-label', `Delete ${name}`);
+      remove.className = 'menu-item theme-danger';
       remove.textContent = 'Delete file'; remove.disabled = name === current.entry;
       remove.onclick = async () => {
         if (!await confirmAction(`Delete ${name}?`, 'The source file will be removed from this project.')) return;
@@ -120,6 +140,7 @@ function renderFiles() {
     }
     $('source-files').append(row);
   }
+  for (const toggle of $('source-files').querySelectorAll('[data-bs-toggle="menu"]')) configureMenu(toggle);
 }
 function renderEditor() {
   $('filename').textContent = current.active; source.readOnly = !!current.rom;
@@ -139,19 +160,20 @@ function highlight() {
     else if (token.startsWith('"')) kind = 'string';
     else if (/^[A-Z]{3}[2rk]*$/.test(token)) kind = 'opcode';
     if (token === ')' && depth) depth--;
-    return kind ? `<span class="${kind}">${escape(token)}</span>` : escape(token);
+    const color = { comment: 'fg-2', label: 'fg-primary', literal: 'fg-emphasis-warning', string: 'fg-success', opcode: 'fg-body' }[kind];
+    return kind ? `<span class="${color}">${escape(token)}</span>` : escape(token);
   }).join('') + '\n';
   const count = source.value.split('\n').length;
-  $('gutter').innerHTML = Array.from({ length: count }, (_, i) => `<button type="button" data-line="${i + 1}" title="Toggle breakpoint on line ${i + 1}" aria-label="Toggle breakpoint on line ${i + 1}" class="${lineBreakpoints.has(`${current.active}:${i + 1}`) ? 'breakpoint' : ''}">${i + 1}</button>`).join('');
+  $('gutter-width').textContent = String(count).padStart(2, '0');
+  $('gutter').innerHTML = Array.from({ length: count }, (_, i) => `<button type="button" data-line="${i + 1}" title="Toggle breakpoint on line ${i + 1}" aria-label="Toggle breakpoint on line ${i + 1}" class="btn-text d-block w-100 min-h-0 border-0 rounded-0 py-0 px-2 text-end font-monospace ${$('font-size').value} lh-lg ${lineBreakpoints.has(`${current.active}:${i + 1}`) ? 'breakpoint theme-danger btn-subtle' : 'fg-2'}">${i + 1}</button>`).join('');
   syncScroll(); highlightPC();
 }
 function highlightPC() {
-  $('gutter').querySelector('.current')?.classList.remove('current');
+  $('gutter').querySelector('.current')?.classList.remove('current', 'theme-primary', 'btn-solid');
   const location = sourceMap[state?.pc];
-  if (location?.file === current.active && !state?.running) $('gutter').querySelector(`[data-line="${location.line}"]`)?.classList.add('current');
+  if (location?.file === current.active && !state?.running) $('gutter').querySelector(`[data-line="${location.line}"]`)?.classList.add('current', 'theme-primary', 'btn-solid');
 }
 function syncScroll() {
-  $('highlight').scrollTop = source.scrollTop; $('highlight').scrollLeft = source.scrollLeft;
   $('gutter').scrollTop = source.scrollTop;
 }
 function cursor() {
@@ -164,7 +186,7 @@ function activateProject(project, autoRun = false) {
   source.value = current.sources[current.active]; source.scrollTop = 0;
   lastFrame = null; $('screenshot').disabled = true;
   $('download-rom').disabled = true; $('notice').hidden = true; $('dirty-indicator').textContent = '';
-  $('console').replaceChildren(); consoleText = ''; $('console-count').textContent = '0';
+  $('console').value = ''; consoleText = ''; consoleKind = ''; $('console-count').textContent = '0';
   renderProjects(); renderFiles(); renderEditor(); renderDisk(); renderBreakpoints();
   persist(); compile(autoRun);
 }
@@ -231,20 +253,31 @@ function setControls() {
 function draw(data) {
   lastFrame = data;
   $('screenshot').disabled = false;
-  if (screen.width !== data.width || screen.height !== data.height) { screen.width = data.width; screen.height = data.height; }
-  context.putImageData(new ImageData(data.pixels, data.width, data.height), 0, 0);
-  $('dimensions').textContent = `${data.width} × ${data.height}`; screen.style.setProperty('--screen-ratio', `${data.width}/${data.height}`); scale();
+  if (rawScreen.width !== data.width || rawScreen.height !== data.height) { rawScreen.width = data.width; rawScreen.height = data.height; }
+  rawContext.putImageData(new ImageData(data.pixels, data.width, data.height), 0, 0);
+  $('dimensions').textContent = `${data.width} × ${data.height}`; scale();
 }
 function scale() {
+  if (!lastFrame) return;
   const value = $('scale').value;
   screen.classList.toggle('fit', value === 'fit');
-  screen.style.width = value === 'fit' ? '' : `${screen.width * Number(value)}px`;
-  screen.style.height = value === 'fit' ? '' : `${screen.height * Number(value)}px`;
+  const stage = $('display-stage'), padding = getComputedStyle(stage);
+  stage.classList.toggle('align-items-center', value === 'fit');
+  stage.classList.toggle('align-items-start', value !== 'fit');
+  stage.classList.toggle('justify-content-center', value === 'fit');
+  const width = stage.clientWidth - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight);
+  const height = stage.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom);
+  const factor = value === 'fit' ? Math.min(width / lastFrame.width, height / lastFrame.height) : Number(value);
+  const w = Math.max(1, Math.floor(lastFrame.width * factor)), h = Math.max(1, Math.floor(lastFrame.height * factor));
+  if (screen.width !== w || screen.height !== h) { screen.width = w; screen.height = h; }
+  context.imageSmoothingEnabled = false;
+  context.clearRect(0, 0, w, h);
+  context.drawImage(rawScreen, 0, 0, w, h);
 }
 function updateState() {
   const status = state.halted ? 'Halted' : state.running ? 'Running' : 'Paused';
-  $('machine-status').innerHTML = `<i></i>${status}`;
-  $('machine-status').className = 'machine-status' + (state.running ? ' running' : '');
+  $('machine-status').textContent = status;
+  $('machine-status').className = 'badge ' + (state.running ? 'theme-success' : 'theme-secondary');
   $('pc-readout').textContent = `PC ${hex(state.pc, 4)}`;
   $('instruction-count').textContent = `${state.instructions.toLocaleString()} instructions`;
   setControls();
@@ -255,7 +288,7 @@ function renderInspector() {
   if (activeTab === 'debugger') {
     for (const name of ['wst', 'rst']) {
       $(name + '-size').textContent = `${state[name].length} / 255`;
-      $(name).innerHTML = state[name].length ? state[name].map(b => `<span class="byte">${hex(b)}</span>`).join('') : '<span class="empty">Empty stack<br>Step to watch values appear.</span>';
+      $(name).innerHTML = state[name].length ? state[name].map(b => `<span class="badge font-monospace">${hex(b)}</span>`).join('') : '<span class="fg-2 text-xs">Empty stack<br>Step to watch values appear.</span>';
     }
     // The memory inspector follows PC while debugging, so disassembly is real ROM memory.
     if (state.pc && (state.pc & 0xff00) !== state.memoryStart) send({ type: 'inspect', address: state.pc });
@@ -279,10 +312,11 @@ function renderInspector() {
     }).join('\n');
   }
   if (activeTab === 'devices') {
-    $('devices').innerHTML = deviceNames.map((name, i) => `<div class="device-row"><strong>${hex(i * 16)} · ${name}</strong><code>${[...state.dev.slice(i * 16, i * 16 + 16)].map(b => hex(b)).join(' ')}</code></div>`).join('');
+    $('devices').innerHTML = deviceNames.map((name, i) => `<div class="device-row col-12 sm:col-6 xl:col-3 min-w-0"><strong class="d-block text-sm mb-1">${hex(i * 16)} · ${name}</strong><code class="d-block text-xs text-break">${[...state.dev.slice(i * 16, i * 16 + 16)].map(b => hex(b)).join(' ')}</code></div>`).join('');
   }
 }
 function tab(name) {
+  if (name === 'repl') openRepl();
   if (name === 'debug') name = debugTab;
   activeTab = name;
   const debugging = ['debugger', 'memory', 'devices'].includes(name);
@@ -291,14 +325,16 @@ function tab(name) {
   for (const button of $('inspector-tabs').querySelectorAll('button')) {
     const selected = button.dataset.tab === group;
     button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
+    button.classList.toggle('active', selected);
     $('view-' + button.dataset.tab).hidden = !selected;
   }
   for (const button of $('debug-tabs').querySelectorAll('button')) {
     const selected = button.dataset.tab === debugTab;
     button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
+    button.classList.toggle('active', selected);
     $('view-' + button.dataset.tab).hidden = !selected;
   }
-  document.querySelector('.inspector').classList.toggle('expanded', debugging);
+  document.querySelector('.inspector').classList.toggle('expanded', debugging || name === 'repl');
   $('pc-readout').hidden = !debugging; $('instruction-count').hidden = !debugging;
   if (name === 'memory') send({ type: 'inspect', address: memoryPage });
   if (name === 'debugger' && state?.pc) send({ type: 'inspect', address: state.pc });
@@ -317,6 +353,7 @@ function renderBreakpoints() {
   $('breakpoints').replaceChildren();
   for (const value of [...breakpoints, ...lineBreakpoints]) {
     const button = document.createElement('button');
+    button.className = 'btn-outline btn-sm font-monospace text-xs';
     button.textContent = (typeof value === 'number' ? hex(value, 4) : value) + ' ×';
     button.onclick = () => { breakpoints.delete(value); lineBreakpoints.delete(value); syncBreakpoints(); highlight(); };
     $('breakpoints').append(button);
@@ -325,13 +362,17 @@ function renderBreakpoints() {
 function renderDisk() {
   $('disk-files').replaceChildren();
   const entries = Object.entries(current.files);
-  if (!entries.length) { $('disk-files').innerHTML = '<p class="empty-state">The virtual disk is empty. Add a file or run the Virtual files example.<br>ROMs read and write here through the File devices.</p>'; return; }
+  if (!entries.length) { $('disk-files').innerHTML = '<p class="fg-2 text-sm my-4">The virtual disk is empty. Add a file or run the Virtual files example.<br>ROMs read and write here through the File devices.</p>'; return; }
   for (const [name, data] of entries) {
-    const row = document.createElement('div'); row.className = 'disk-row';
+    const row = document.createElement('div'); row.className = 'd-flex flex-wrap gap-2 align-items-center border-bottom py-3';
     const code = document.createElement('code'); code.textContent = name;
+    code.className = 'text-break me-auto';
     const size = document.createElement('span'); size.textContent = `${decode(data).length.toLocaleString()} B`;
+    size.className = 'text-xs fg-2';
     const downloadButton = document.createElement('button'); downloadButton.textContent = 'Download'; downloadButton.onclick = () => download(decode(data), name);
+    downloadButton.className = 'btn-outline btn-sm';
     const remove = document.createElement('button'); remove.textContent = 'Delete';
+    remove.className = 'btn-text theme-danger btn-sm';
     remove.onclick = async () => { if (!await confirmAction(`Delete ${name}?`, 'This removes the virtual file from the project.')) return; delete current.files[name]; send({ type: 'delete-file', name }); renderDisk(); persist(); };
     row.append(code, size, downloadButton, remove); $('disk-files').append(row);
   }
@@ -345,18 +386,18 @@ function nameDialog(title, label, value = '', description = '') {
     const dialog = $('name-dialog'); $('dialog-title').textContent = title; $('dialog-label').textContent = label;
     $('dialog-input').value = value; $('dialog-input').hidden = false; $('dialog-label').hidden = false;
     $('dialog-input').required = true; $('dialog-description').textContent = description;
-    dialog.querySelector('.primary').textContent = 'Save';
-    dialog.onclose = () => resolve(dialog.returnValue === 'confirm' ? $('dialog-input').value.trim() : null);
-    dialog.showModal(); $('dialog-input').focus(); $('dialog-input').select();
+    dialog.querySelector('[value="confirm"]').textContent = 'Save';
+    dialog.onclose = () => { dialog.hidden = true; resolve(dialog.returnValue === 'confirm' ? $('dialog-input').value.trim() : null); };
+    dialog.hidden = false; dialog.showModal(); $('dialog-input').focus(); $('dialog-input').select();
   });
 }
 function confirmAction(title, description) {
   return new Promise(resolve => {
     const dialog = $('name-dialog'); $('dialog-title').textContent = title; $('dialog-description').textContent = description;
     $('dialog-input').hidden = true; $('dialog-input').required = false; $('dialog-label').hidden = true;
-    dialog.querySelector('.primary').textContent = 'Delete';
-    dialog.onclose = () => resolve(dialog.returnValue === 'confirm');
-    dialog.showModal(); dialog.querySelector('[value="cancel"]').focus();
+    dialog.querySelector('[value="confirm"]').textContent = 'Delete';
+    dialog.onclose = () => { dialog.hidden = true; resolve(dialog.returnValue === 'confirm'); };
+    dialog.hidden = false; dialog.showModal(); dialog.querySelector('[value="cancel"]').focus();
   });
 }
 function addProject(project, autoRun = false) { persist(); store.projects.push(project); activateProject(project, autoRun); }
@@ -393,16 +434,23 @@ async function addDiskFile(file) {
 function input(vector, values) { send({ type: 'input', vector, values }); }
 function pointer(event) {
   const bounds = screen.getBoundingClientRect();
-  const ratio = Math.min(bounds.width / screen.width, bounds.height / screen.height);
-  const w = screen.width * ratio, h = screen.height * ratio;
-  const x = Math.max(0, Math.min(screen.width - 1, Math.floor((event.clientX - bounds.left - (bounds.width - w) / 2) / ratio)));
-  const y = Math.max(0, Math.min(screen.height - 1, Math.floor((event.clientY - bounds.top - (bounds.height - h) / 2) / ratio)));
+  const width = lastFrame?.width || 128, height = lastFrame?.height || 128;
+  const x = Math.max(0, Math.min(width - 1, Math.floor((event.clientX - bounds.left) * width / bounds.width)));
+  const y = Math.max(0, Math.min(height - 1, Math.floor((event.clientY - bounds.top) * height / bounds.height)));
   input(0x90, [[0x92, x >> 8], [0x93, x & 255], [0x94, y >> 8], [0x95, y & 255], [0x96, mouseButtons]]);
 }
 
 $('reference-content').innerHTML = referenceHTML;
+for (const heading of $('reference-content').querySelectorAll('h2')) heading.className = 'h4';
+for (const heading of $('reference-content').querySelectorAll('h3')) heading.className = 'h6 mt-5 mb-2';
+for (const table of $('reference-content').querySelectorAll('table')) {
+  table.className = 'table table-sm';
+  const wrapper = document.createElement('div'); wrapper.className = 'overflow-x-auto';
+  table.before(wrapper); wrapper.append(table);
+}
+$('reference-content').querySelector('nav').className = 'd-flex flex-wrap gap-3 my-3';
 $('examples').replaceChildren(...examples.map(example => {
-  const button = document.createElement('button'); button.innerHTML = `<span>${escape(example.name)}</span><span>${escape(example.category)}</span>`; button.title = example.description;
+  const button = document.createElement('button'); button.className = 'btn-text btn-sm d-flex justify-content-between gap-2 text-start'; button.innerHTML = `<span>${escape(example.name)}</span><span class="fg-2 text-xs">${escape(example.category)}</span>`; button.title = example.description;
   button.onclick = () => {
     $('example-programs').open = false;
     addProject(freshProject(example.name, example.file, example.source), example.category !== 'Debugger');
@@ -443,7 +491,7 @@ $('step').onclick = () => { tab('debugger'); send({ type: 'step' }); };
 $('reset').onclick = () => { audio.stop(); send({ type: 'reset' }); };
 $('download-rom').onclick = () => { if (compiled) download(compiled, current.name.replace(/[^\w-]/g, '-') + '.rom'); };
 $('download-source').onclick = () => download(source.value, current.active, 'text/plain');
-$('clear-console').onclick = () => { $('console').replaceChildren(); consoleText = ''; $('console-count').textContent = '0'; };
+$('clear-console').onclick = () => { $('console').value = ''; consoleText = ''; consoleKind = ''; $('console-count').textContent = '0'; };
 $('console-form').onsubmit = event => {
   event.preventDefault();
   for (const byte of new TextEncoder().encode($('console-input').value + '\n')) input(0x10, [[0x12, byte], [0x17, 1]]);
@@ -483,7 +531,12 @@ source.addEventListener('click', cursor); source.addEventListener('keyup', curso
 source.addEventListener('keydown', event => {
   if (event.key === 'Tab' && !source.readOnly) { event.preventDefault(); document.execCommand('insertText', false, '  '); }
 });
-$('font-size').onchange = () => document.documentElement.style.setProperty('--code-size', $('font-size').value + 'px');
+$('font-size').onchange = () => {
+  source.classList.remove('text-xs', 'text-sm', 'text-md', 'text-lg');
+  source.classList.add($('font-size').value);
+  $('gutter-width').className = `invisible font-monospace ${$('font-size').value} px-2`;
+  highlight();
+};
 $('find-toggle').onclick = () => { $('find-bar').hidden = false; $('find-input').focus(); };
 $('find-close').onclick = () => { $('find-bar').hidden = true; source.focus(); };
 $('find-next').onclick = () => {
@@ -495,18 +548,22 @@ $('find-next').onclick = () => {
   source.scrollTop = Math.max(0, (source.value.slice(0, index).split('\n').length - 4) * parseInt(getComputedStyle(source).lineHeight)); cursor();
 };
 $('find-input').onkeydown = event => { if (event.key === 'Enter') { event.preventDefault(); $('find-next').click(); } };
-$('reference-toggle').onclick = () => { $('reference').hidden = !$('reference').hidden; $('reference-toggle').setAttribute('aria-expanded', String(!$('reference').hidden)); };
-$('reference-close').onclick = () => { $('reference').hidden = true; $('reference-toggle').setAttribute('aria-expanded', 'false'); $('reference-toggle').focus(); };
+$('reference-toggle').onclick = () => { $('reference').hidden = false; $('reference').showModal(); };
+$('reference').addEventListener('close', () => { $('reference').hidden = true; $('reference-toggle').setAttribute('aria-expanded', 'false'); });
+$('reference').addEventListener('toggle', () => { $('reference-toggle').setAttribute('aria-expanded', String($('reference').open)); });
+$('reference-close').onclick = () => $('reference').close();
 $('scale').onchange = scale;
 $('fullscreen').onclick = async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('display-stage').requestFullscreen(); } catch (error) { report(`Fullscreen unavailable: ${error.message}`, true); } };
-$('screenshot').onclick = () => { if (!lastFrame) return; screen.toBlob(blob => { if (blob) download(blob, `${current.name}.png`, 'image/png'); else report('The display image could not be saved.', true); }); };
+$('screenshot').onclick = () => { if (!lastFrame) return; rawScreen.toBlob(blob => { if (blob) download(blob, `${current.name}.png`, 'image/png'); else report('The display image could not be saved.', true); }); };
 $('sound').onclick = async () => {
   try {
     if (audio.enabled) audio.disable(); else await audio.enable();
     $('sound').setAttribute('aria-pressed', String(audio.enabled)); $('sound').textContent = audio.enabled ? 'Sound on' : 'Sound off';
+    $('sound').classList.toggle('active', audio.enabled);
   } catch (error) { report(`Audio unavailable: ${error.message}`, true); }
 };
 screen.oncontextmenu = event => event.preventDefault();
+for (const name of ['touchstart', 'touchmove']) screen.addEventListener(name, event => event.preventDefault(), { passive: false });
 screen.onpointerdown = event => {
   event.preventDefault(); screen.focus(); screen.setPointerCapture(event.pointerId);
   mouseButtons = (event.buttons & 1) | (event.buttons & 2 ? 4 : 0) | (event.buttons & 4 ? 2 : 0); pointer(event);
@@ -537,20 +594,10 @@ document.addEventListener('keydown', event => {
   if (event.key === 'F5') { event.preventDefault(); send({ type: 'run' }); }
   if (event.key === 'F6') { event.preventDefault(); pauseExecution(); }
   if (event.key === 'F10') { event.preventDefault(); tab('debugger'); $('step').click(); }
-  if (event.key === 'Escape') { $('reference').hidden = true; $('find-bar').hidden = true; }
+  if (event.key === 'Escape') { if ($('reference').open) $('reference').close(); $('find-bar').hidden = true; }
 });
-// Native popovers provide Escape dismissal, light-dismiss, and focus restoration.
-document.addEventListener('click', event => {
-  const trigger = event.target.closest('[popovertarget]');
-  if (trigger) {
-    const menu = $(trigger.getAttribute('popovertarget')), rect = trigger.getBoundingClientRect();
-    menu.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - 232))}px`;
-    menu.style.top = `${Math.max(8, Math.min(rect.bottom + 5, innerHeight - 190))}px`;
-  }
-  const action = event.target.closest('.action-menu button');
-  const menu = action?.closest('.action-menu');
-  if (menu?.isConnected && menu.matches(':popover-open')) menu.hidePopover();
-});
+new ResizeObserver(scale).observe($('display-stage'));
+for (const toggle of document.querySelectorAll('[data-bs-toggle="menu"]')) configureMenu(toggle);
 window.addEventListener('beforeunload', persist);
 window.addEventListener('error', event => report(event.message, true));
 window.addEventListener('unhandledrejection', event => report(event.reason?.message || String(event.reason), true));

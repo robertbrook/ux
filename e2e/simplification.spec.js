@@ -29,7 +29,7 @@ for (const theme of ['light', 'dark']) {
       expect(await page.locator('#source').evaluate(element => getComputedStyle(element).fontSize)).toBe('14px');
 
       const options = page.getByRole('button', { name: 'Run options', exact: true });
-      await options.focus(); await page.keyboard.press('Enter'); await page.keyboard.press('Tab');
+      await options.focus(); await page.keyboard.press('Enter'); await page.keyboard.press('ArrowDown');
       await expect(page.locator('#assemble')).toBeFocused();
       const bounds = await page.locator('#run-menu').boundingBox();
       expect(bounds.x).toBeGreaterThanOrEqual(0);
@@ -39,20 +39,20 @@ for (const theme of ['light', 'dark']) {
       await expect(options).toBeFocused();
 
       await page.getByRole('button', { name: 'Editor settings', exact: true }).click();
-      await page.getByLabel('Text size').selectOption('18');
-      expect(await page.locator('#source').evaluate(element => getComputedStyle(element).fontSize)).toBe('18px');
+      await page.getByLabel('Text size').selectOption('text-md');
+      expect(await page.locator('#source').evaluate(element => getComputedStyle(element).fontSize)).toBe('16px');
       await page.keyboard.press('Escape');
       await page.getByRole('button', { name: 'Display settings', exact: true }).click();
       await expect(page.getByLabel('Display scale')).toHaveValue('fit');
       await page.getByLabel('Display scale').selectOption('2');
-      await expect(page.locator('#screen')).not.toHaveClass('fit');
+      await expect(page.locator('#screen')).not.toHaveClass(/\bfit\b/);
       await page.getByLabel('Display scale').selectOption('fit');
-      await expect(page.locator('#screen')).toHaveClass('fit');
+      await expect(page.locator('#screen')).toHaveClass(/\bfit\b/);
       await page.keyboard.press('Escape');
 
       await selectExample(page, 'Stack arithmetic Debugger');
       await expect(page.getByRole('tab', { name: 'Debug', exact: true })).toHaveAttribute('aria-selected', 'true');
-      await expect(page.locator('.inspector')).toHaveClass('inspector expanded');
+      await expect(page.locator('.inspector')).toHaveClass(/expanded/);
       await expect(page.locator('#instruction-count')).toBeVisible();
       await expect(page.locator('#step')).toBeEnabled();
       await page.keyboard.press('F10');
@@ -93,7 +93,7 @@ test('one Export menu preserves project, source, ROM and unmodified PNG download
   await expect(page.locator('#runtime-status')).toContainText('ready');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.locator('#machine-status')).toContainText('Paused');
-  const png = await page.locator('#screen').evaluate(canvas => canvas.toDataURL().split(',')[1]);
+  const png = await page.locator('#screen-raw').evaluate(canvas => canvas.toDataURL().split(',')[1]);
   expect(await contents(await exportFile(page, 'screenshot'))).toEqual(Buffer.from(png, 'base64'));
   const source = '|0100 #2a BRK';
   await page.locator('#source').fill(source);
@@ -124,10 +124,10 @@ test('explicit file entry action, project actions and imports survive persistenc
   await page.getByRole('button', { name: 'Set as entry', exact: true }).click();
   await expect(page.locator('#entry-label')).toContainText('second.tal');
   await page.locator('#run').click();
-  await expect(page.locator('#console')).toContainText('B');
+  await expect(page.locator('#console')).toHaveValue(/B/);
   await page.reload();
   await expect(page.locator('#entry-label')).toContainText('second.tal');
-  await expect(page.locator('#console')).toContainText('B');
+  await expect(page.locator('#console')).toHaveValue(/B/);
 
   await page.getByRole('button', { name: 'Project actions', exact: true }).click();
   await page.getByRole('button', { name: 'Rename project', exact: true }).click();
