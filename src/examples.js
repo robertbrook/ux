@@ -2,7 +2,7 @@ export const examples = [
   {
     name: 'Interference', file: 'interference.tal', category: 'Screen', description: 'A moving field of interference, drawn one pixel at a time.',
     source: `( Interference — a small study in binary texture )
-( Assemble & run. Change the palette or the AND mask. )
+( Run. Change the palette or the AND mask. )
 
 |00 @x $2 @y $2 @time $1
 
@@ -52,7 +52,7 @@ BRK
   },
   {
     name: 'Stack arithmetic', file: 'stack.tal', category: 'Debugger', description: 'Step through byte and short arithmetic. Watch both stacks.',
-    source: `( Assemble, then Step to watch the working stack. )
+    source: `( Use Run options: Assemble only, then Debug: Step to watch the stack. )
 |0100
   #03 #04 ADD
   DUP #02 MUL
@@ -99,7 +99,7 @@ BRK
   },
   {
     name: 'Sample voice', file: 'audio.tal', category: 'Audio', description: 'Play a looping waveform with an ADSR envelope.',
-    source: `( Enable sound, then Assemble & run. )
+    source: `( Enable sound, then Run. )
 |0100
   #2484 #38 DEO2 ( attack / decay / sustain / release )
   #0020 #3a DEO2 ( sample length )

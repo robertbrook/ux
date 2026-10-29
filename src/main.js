@@ -12,13 +12,38 @@ const decode = text => Uint8Array.from(atob(text), c => c.charCodeAt(0));
 const key = 'ux-workbench-v1';
 const source = $('source'), screen = $('screen'), context = screen.getContext('2d');
 let store, current, worker, compiled, state, sourceMap = {}, labels = {}, breakpoints = new Set(), lineBreakpoints = new Set();
-let activeTab = 'console', consoleText = '', buildTime = 0, loaded = false, saveTimer, memoryPage = 0x100;
+let activeTab = 'console', debugTab = 'debugger', consoleText = '', buildTime = 0, loaded = false, saveTimer, memoryPage = 0x100;
 let buttons = 0, mouseButtons = 0, loadingTimer, lastFrame, saveBlocked = false, startupError = '', recoveryData = '';
 const audio = new AudioEngine(message => worker?.postMessage(message));
+const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+let themePreference = document.documentElement.dataset.themePreference;
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.themePreference = themePreference;
+  $('theme-toggle').setAttribute('aria-pressed', String(theme === 'dark'));
+  $('theme-toggle').title = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
+  document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#14191f' : '#e9edf0';
+}
+applyTheme(themePreference === 'system'
+  ? systemTheme.matches ? 'dark' : 'light'
+  : document.documentElement.dataset.theme);
+$('theme-toggle').onclick = () => {
+  themePreference = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(themePreference);
+  try { localStorage.setItem('ux-theme', themePreference); }
+  catch (error) { report(`Theme changed, but the preference could not be saved: ${error.message}`, true); }
+};
+systemTheme.addEventListener('change', event => {
+  if (themePreference === 'system') applyTheme(event.matches ? 'dark' : 'light');
+});
+window.addEventListener('storage', event => {
+  if (event.key !== 'ux-theme' && event.key !== null) return;
+  themePreference = ['light', 'dark'].includes(event.newValue) ? event.newValue : 'system';
+  applyTheme(themePreference === 'system' ? systemTheme.matches ? 'dark' : 'light' : themePreference);
+});
 function report(message, error = false) {
   $('notice').textContent = message; $('notice').hidden = !message;
-  $('notice').style.background = error ? '#fae7e2' : '#e5ecfa';
-  $('notice').style.color = error ? '#8d2921' : '#24447b';
+  $('notice').dataset.error = String(error);
 }
 function log(text, kind = '') {
   const atBottom = $('console').scrollHeight - $('console').scrollTop - $('console').clientHeight < 30;
@@ -40,9 +65,9 @@ function persist() {
   if (saveBlocked) { $('save-status').textContent = 'Saving blocked — export a backup'; return; }
   try {
     localStorage.setItem(key, JSON.stringify(store));
-    $('save-status').textContent = 'Saved locally'; $('save-status').style.color = '#34674f';
+    $('save-status').textContent = 'Saved locally'; $('save-status').dataset.error = 'false';
   } catch (error) {
-    $('save-status').textContent = 'Not saved — export a backup'; $('save-status').style.color = '#a52e26';
+    $('save-status').textContent = 'Not saved — export a backup'; $('save-status').dataset.error = 'true';
     report(`Browser storage failed: ${error.message}. Export your project now to preserve changes.`, true);
   }
 }
@@ -68,20 +93,31 @@ function renderProjects() {
 }
 function renderFiles() {
   $('source-files').replaceChildren();
-  for (const name of Object.keys(current.sources)) {
+  for (const [index, name] of Object.keys(current.sources).entries()) {
     const row = document.createElement('div'); row.className = 'file-row' + (name === current.active ? ' active' : '');
-    const button = document.createElement('button'); button.textContent = name; button.title = `${name}${name === current.entry ? ' (entry file)' : ' — double-click to set as entry'}`;
+    const button = document.createElement('button'); button.textContent = name; button.title = `${name}${name === current.entry ? ' (entry file)' : ''}`;
     button.onclick = () => { persist(); current.active = name; source.value = current.sources[name]; renderEditor(); renderFiles(); persist(); };
-    button.ondblclick = () => { current.entry = name; renderFiles(); renderEditor(); persist(); report(`Entry file set to ${name}`); };
     row.append(button);
-    if (name !== current.entry && !current.rom) {
-      const remove = document.createElement('button'); remove.textContent = '×'; remove.setAttribute('aria-label', `Delete ${name}`);
+    if (!current.rom) {
+      const options = document.createElement('button'); options.textContent = '···'; options.setAttribute('aria-label', `Actions for ${name}`);
+      const menu = document.createElement('div'); menu.className = 'action-menu'; menu.id = `file-menu-${index}`; menu.setAttribute('popover', ''); menu.setAttribute('aria-label', `Actions for ${name}`);
+      options.setAttribute('popovertarget', menu.id);
+      const entry = document.createElement('button'); entry.textContent = name === current.entry ? 'Entry file' : 'Set as entry'; entry.disabled = name === current.entry;
+      entry.onclick = () => {
+        persist(); current.entry = name; menu.hidePopover(); renderFiles(); renderEditor(); persist();
+        report(`Entry file set to ${name}`);
+        $('source-files').querySelectorAll('.file-row > button:first-child')[index]?.focus();
+      };
+      menu.append(entry);
+      const remove = document.createElement('button'); remove.setAttribute('aria-label', `Delete ${name}`);
+      remove.textContent = 'Delete file'; remove.disabled = name === current.entry;
       remove.onclick = async () => {
         if (!await confirmAction(`Delete ${name}?`, 'The source file will be removed from this project.')) return;
         delete current.sources[name]; if (current.active === name) { current.active = current.entry; source.value = current.sources[current.entry]; }
         renderFiles(); renderEditor(); persist();
-      }; row.append(remove);
-    } else { const marker = document.createElement('span'); marker.textContent = '•'; marker.title = 'Entry file'; marker.style.paddingRight = '8px'; row.append(marker); }
+      };
+      menu.append(remove); row.append(options, menu);
+    }
     $('source-files').append(row);
   }
 }
@@ -126,6 +162,7 @@ function activateProject(project, autoRun = false) {
   audio.stop(); worker?.terminate(); clearTimeout(loadingTimer); worker = null;
   current = project; loaded = false; compiled = null; state = null; breakpoints.clear(); lineBreakpoints.clear(); sourceMap = {}; labels = {};
   source.value = current.sources[current.active]; source.scrollTop = 0;
+  lastFrame = null; $('screenshot').disabled = true;
   $('download-rom').disabled = true; $('notice').hidden = true; $('dirty-indicator').textContent = '';
   $('console').replaceChildren(); consoleText = ''; $('console-count').textContent = '0';
   renderProjects(); renderFiles(); renderEditor(); renderDisk(); renderBreakpoints();
@@ -139,7 +176,7 @@ function createWorker() {
     switch (data.type) {
       case 'assembled':
         clearTimeout(loadingTimer); compiled = data.rom; labels = data.labels; sourceMap = data.sourceMap; loaded = true;
-        $('runtime-status').textContent = 'Uxn WASM · ready'; $('rom-size').textContent = `${compiled.length.toLocaleString()} bytes`;
+        $('runtime-status').textContent = 'Runtime ready'; $('rom-size').textContent = `${compiled.length.toLocaleString()} bytes`;
         $('download-rom').disabled = false; $('build-status').textContent = `Assembled ${compiled.length.toLocaleString()} bytes in ${Math.round(performance.now() - buildTime)} ms`;
         $('dirty-indicator').textContent = ''; log(`✓ ${current.entry} → ${compiled.length.toLocaleString()} bytes\n`, 'info');
         syncBreakpoints(); worker.postMessage({ type: 'inspect', address: memoryPage }); setControls(); break;
@@ -169,6 +206,7 @@ function handleError(message) {
   setControls();
 }
 function compile(run) {
+  clearTimeout(loadingTimer); state = null;
   persist(); report(''); createWorker(); buildTime = performance.now();
   $('runtime-status').textContent = 'Assembling…'; $('build-status').textContent = 'Building ROM…'; $('download-rom').disabled = true;
   const message = { type: 'load', source: current.sources[current.entry], files: current.sources, name: current.entry, run,
@@ -184,10 +222,15 @@ function send(message) {
   worker.postMessage(message);
 }
 function setControls() {
-  for (const id of ['resume', 'pause', 'step', 'reset']) $(id).disabled = !loaded;
+  for (const id of ['execution-toggle', 'step', 'reset']) $(id).disabled = !loaded || !!state?.halted;
+  $('reset').disabled = !loaded;
+  $('execution-toggle').textContent = state?.running ? 'Pause' : 'Resume';
+  $('execution-toggle').title = state?.running ? 'Pause (F6)' : 'Resume (F5)';
+  $('step').disabled = !loaded || !!state?.running || !!state?.halted;
 }
 function draw(data) {
   lastFrame = data;
+  $('screenshot').disabled = false;
   if (screen.width !== data.width || screen.height !== data.height) { screen.width = data.width; screen.height = data.height; }
   context.putImageData(new ImageData(data.pixels, data.width, data.height), 0, 0);
   $('dimensions').textContent = `${data.width} × ${data.height}`; screen.style.setProperty('--screen-ratio', `${data.width}/${data.height}`); scale();
@@ -204,7 +247,7 @@ function updateState() {
   $('machine-status').className = 'machine-status' + (state.running ? ' running' : '');
   $('pc-readout').textContent = `PC ${hex(state.pc, 4)}`;
   $('instruction-count').textContent = `${state.instructions.toLocaleString()} instructions`;
-  $('pause').disabled = !state.running; $('resume').disabled = state.running || state.halted; $('step').disabled = state.running || state.halted;
+  setControls();
   highlightPC(); renderInspector();
 }
 function renderInspector() {
@@ -240,12 +283,23 @@ function renderInspector() {
   }
 }
 function tab(name) {
+  if (name === 'debug') name = debugTab;
   activeTab = name;
+  const debugging = ['debugger', 'memory', 'devices'].includes(name);
+  if (debugging) debugTab = name;
+  const group = debugging ? 'debug' : name;
   for (const button of $('inspector-tabs').querySelectorAll('button')) {
-    const selected = button.dataset.tab === name;
+    const selected = button.dataset.tab === group;
     button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
     $('view-' + button.dataset.tab).hidden = !selected;
   }
+  for (const button of $('debug-tabs').querySelectorAll('button')) {
+    const selected = button.dataset.tab === debugTab;
+    button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
+    $('view-' + button.dataset.tab).hidden = !selected;
+  }
+  document.querySelector('.inspector').classList.toggle('expanded', debugging);
+  $('pc-readout').hidden = !debugging; $('instruction-count').hidden = !debugging;
   if (name === 'memory') send({ type: 'inspect', address: memoryPage });
   if (name === 'debugger' && state?.pc) send({ type: 'inspect', address: state.pc });
   renderInspector();
@@ -323,7 +377,7 @@ async function importFiles(files) {
         if (current.rom) addProject(freshProject(file.name.replace(/\.tal$/, ''), file.name, await file.text()));
         else {
           if (Object.hasOwn(current.sources, file.name)) throw new Error(`${file.name} already exists. Rename the file before importing.`);
-          persist(); current.sources[file.name] = await file.text(); current.active = file.name; source.value = current.sources[file.name]; renderFiles(); renderEditor(); persist(); report(`Imported ${file.name}. Double-click its file name to use it as the entry point.`);
+          persist(); current.sources[file.name] = await file.text(); current.active = file.name; source.value = current.sources[file.name]; renderFiles(); renderEditor(); persist(); report(`Imported ${file.name}. Use its file actions to Set as entry.`);
         }
       } else await addDiskFile(file);
     } catch (error) { report(`Could not import ${file.name}: ${error.message}`, true); log(error.message + '\n', 'error'); }
@@ -349,10 +403,14 @@ function pointer(event) {
 $('reference-content').innerHTML = referenceHTML;
 $('examples').replaceChildren(...examples.map(example => {
   const button = document.createElement('button'); button.innerHTML = `<span>${escape(example.name)}</span><span>${escape(example.category)}</span>`; button.title = example.description;
-  button.onclick = () => { addProject(freshProject(example.name, example.file, example.source), example.category !== 'Debugger'); if (example.category === 'Debugger') tab('debugger'); };
+  button.onclick = () => {
+    $('example-programs').open = false;
+    addProject(freshProject(example.name, example.file, example.source), example.category !== 'Debugger');
+    tab(example.category === 'Debugger' ? 'debugger' : 'console');
+    $('example-programs').querySelector('summary').focus();
+  };
   return button;
 }));
-$('examples-toggle').onclick = () => { const open = document.querySelector('.rail').classList.toggle('mobile-examples'); $('examples-toggle').setAttribute('aria-expanded', String(open)); };
 $('projects').onchange = () => { persist(); activateProject(store.projects.find(p => p.id === $('projects').value)); };
 $('new-project').onclick = async () => { const name = await nameDialog('New project', 'Project name', 'Untitled'); if (name) addProject(freshProject(name)); };
 $('rename-project').onclick = async () => { const name = await nameDialog('Rename project', 'Project name', current.name); if (name) { current.name = name.slice(0, 100); renderProjects(); persist(); } };
@@ -365,7 +423,7 @@ $('delete-project').onclick = async () => {
 $('export-project').onclick = () => { persist(); download(JSON.stringify({ version: 1, project: current }, null, 2), current.name.replace(/[^\w-]/g, '-') + '.ux.json', 'application/json'); };
 $('new-file').onclick = async () => {
   if (current.rom) { report('Create a new project to write source; this project contains an imported ROM.', true); return; }
-  const name = await nameDialog('New source file', 'Relative file name', 'library.tal', 'Double-click a source file to set it as the entry point. Include another file with ~library.tal.');
+  const name = await nameDialog('New source file', 'Relative file name', 'library.tal', 'Use file actions to Set as entry. Include another file with ~library.tal.');
   if (!name) return;
   if (!validName(name) || !name.endsWith('.tal') || Object.hasOwn(current.sources, name)) { report('Use a unique relative file name ending in .tal.', true); return; }
   persist(); current.sources[name] = '( New source file )\n'; current.active = name; source.value = current.sources[name]; renderFiles(); renderEditor(); persist();
@@ -377,10 +435,10 @@ $('disk-input').onchange = async () => {
   for (const file of $('disk-input').files) { try { await addDiskFile(file); } catch (error) { report(error.message, true); } }
   $('disk-input').value = '';
 };
-$('assemble').onclick = () => compile(false);
+$('assemble').onclick = () => { tab('debugger'); compile(false); };
 $('run').onclick = () => compile(true);
-$('resume').onclick = () => send({ type: 'run' });
-$('pause').onclick = () => { send({ type: 'pause' }); audio.stop(); };
+function pauseExecution() { send({ type: 'pause' }); audio.stop(); }
+$('execution-toggle').onclick = () => { if (state?.running) pauseExecution(); else send({ type: 'run' }); };
 $('step').onclick = () => { tab('debugger'); send({ type: 'step' }); };
 $('reset').onclick = () => { audio.stop(); send({ type: 'reset' }); };
 $('download-rom').onclick = () => { if (compiled) download(compiled, current.name.replace(/[^\w-]/g, '-') + '.rom'); };
@@ -391,13 +449,15 @@ $('console-form').onsubmit = event => {
   for (const byte of new TextEncoder().encode($('console-input').value + '\n')) input(0x10, [[0x12, byte], [0x17, 1]]);
   $('console-input').value = '';
 };
-$('inspector-tabs').onclick = event => { const button = event.target.closest('button'); if (button) tab(button.dataset.tab); };
-$('inspector-tabs').onkeydown = event => {
-  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-  const tabs = [...$('inspector-tabs').querySelectorAll('button')], index = tabs.findIndex(b => b.dataset.tab === activeTab);
-  const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
-  event.preventDefault(); tab(tabs[next].dataset.tab); tabs[next].focus();
-};
+for (const id of ['inspector-tabs', 'debug-tabs']) {
+  $(id).onclick = event => { const button = event.target.closest('button'); if (button) tab(button.dataset.tab); };
+  $(id).onkeydown = event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const tabs = [...$(id).querySelectorAll('button')], index = tabs.findIndex(b => b.getAttribute('aria-selected') === 'true');
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+    event.preventDefault(); tab(tabs[next].dataset.tab); tabs[next].focus();
+  };
+}
 $('gutter').onclick = event => {
   const button = event.target.closest('button'); if (!button) return;
   const value = `${current.active}:${button.dataset.line}`;
@@ -475,9 +535,21 @@ document.addEventListener('keydown', event => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); compile(true); }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); persist(); }
   if (event.key === 'F5') { event.preventDefault(); send({ type: 'run' }); }
-  if (event.key === 'F6') { event.preventDefault(); $('pause').click(); }
-  if (event.key === 'F10') { event.preventDefault(); $('step').click(); }
+  if (event.key === 'F6') { event.preventDefault(); pauseExecution(); }
+  if (event.key === 'F10') { event.preventDefault(); tab('debugger'); $('step').click(); }
   if (event.key === 'Escape') { $('reference').hidden = true; $('find-bar').hidden = true; }
+});
+// Native popovers provide Escape dismissal, light-dismiss, and focus restoration.
+document.addEventListener('click', event => {
+  const trigger = event.target.closest('[popovertarget]');
+  if (trigger) {
+    const menu = $(trigger.getAttribute('popovertarget')), rect = trigger.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - 232))}px`;
+    menu.style.top = `${Math.max(8, Math.min(rect.bottom + 5, innerHeight - 190))}px`;
+  }
+  const action = event.target.closest('.action-menu button');
+  const menu = action?.closest('.action-menu');
+  if (menu?.isConnected && menu.matches(':popover-open')) menu.hidePopover();
 });
 window.addEventListener('beforeunload', persist);
 window.addEventListener('error', event => report(event.message, true));

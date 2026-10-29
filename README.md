@@ -15,8 +15,11 @@ A browser-based Uxn / Uxntal / Varvara programming environment. The VM runs real
 - Two virtual File devices with independent cursors, read/write/append/delete/stat and directory listing.
 - Eight editable example programs and an integrated language/device reference.
 - Local project persistence, project JSON import/export, `.tal` import/export, ROM import/export, virtual file upload/download and PNG screenshots.
+- Light and dark themes, with system-preference detection and a saved header toggle. Theme changes affect the workbench, not the ROM's palette or exported screenshots.
 
-Select an example and **Assemble & run**. **Assemble** alone loads the ROM paused at `0100`; **Step** executes one instruction. Click a line number to toggle a breakpoint. Click the display to send keyboard/mouse input. Double-click a source filename to make it the entry file; `~library.tal` includes another source.
+Select an example to run it; the examples list collapses after selection. Use **Run** after editing. **Run options → Assemble only** loads the ROM paused at `0100`; **Debug → Step** executes one instruction. Debug groups stacks/disassembly, memory and devices in an expanded tray; Console and Virtual disk remain directly accessible. Click a line number to toggle a breakpoint. Click the display to send keyboard/mouse input; its execution control switches between Pause and Resume.
+
+Use a source file's **··· → Set as entry** action to change the entry file; `~library.tal` includes another source. **Project ···** contains New, Rename and Delete. **Export** gathers project, current source, ROM and screen-image downloads. Text size lives in **Editor settings**, with a 14px default; display scale lives in **Display settings**, defaulting to Fit.
 
 Ctrl/⌘ Enter assembles and runs; Ctrl/⌘ S saves locally; F5 resumes, F6 pauses, F10 steps. Export a project to back it up: browser storage is origin-local and can be cleared or exhausted. Storage failures are shown explicitly. Imported projects and ROMs run untrusted code only inside the VM worker; execution budgets keep infinite loops interruptible.
 
@@ -43,7 +46,7 @@ The regression suite covers assembly diagnostics, examples, stepping and stack m
 
 ## Deployment
 
-The Pages workflow builds and publishes the static `dist/` directory using GitHub Actions, with the `/ux/` base path. It runs on `main` and the initial implementation branch, and can be dispatched manually. In repository **Settings → Pages**, choose **GitHub Actions** as the source. Enabling Pages requires repository administration / Pages-write permission; a code-write token alone is insufficient.
+The Pages workflow builds the static `dist/` directory using GitHub Actions, with the `/ux/` base path. It runs checks on `main` and the initial implementation branch; only `main` publishes to Pages. It can also be dispatched manually. In repository **Settings → Pages**, choose **GitHub Actions** as the source. Enabling Pages requires repository administration / Pages-write permission; a code-write token alone is insufficient.
 
 ## Compatibility and limits
 

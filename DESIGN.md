@@ -10,6 +10,13 @@ colors:
   panel: "#f3f5f6"
   line: "#cbd2d8"
   muted: "#596672"
+  dark-bg: "#14191f"
+  dark-paper: "#1b2129"
+  dark-panel: "#222a34"
+  dark-text: "#dce4ec"
+  dark-muted: "#a4b2c0"
+  dark-line: "#3a4653"
+  dark-link: "#a3beff"
 typography:
   body:
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
@@ -21,7 +28,7 @@ typography:
     fontWeight: 400
   code:
     fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace'
-    fontSize: "13px"
+    fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.75
 rounded:
@@ -77,6 +84,14 @@ The desk connects the real source editor to a live Varvara machine: source on th
 
 The palette pairs cool, light neutrals with one decisive cobalt accent; neutral surfaces carry most of the interface.
 
+### Dark Mode
+
+The header's Dark mode toggle switches the same drafting-desk hierarchy to charcoal surfaces: page `#14191f`, work surfaces `#1b2129`, panel bars `#222a34`, dividers `#3a4653`, and text `#dce4ec`. Supporting text uses `#a4b2c0`; links and active details use a lighter blue `#a3beff`. The primary action retains cobalt with white text.
+
+Use the shared semantic CSS properties for all themed surfaces, syntax highlighting, focus, notices, saved states, tabs, dialogs, reference and inspection views. Set native controls' `color-scheme` with the active theme. The ROM controls its own palette; never invert or recolor the canvas or exported images.
+
+Until explicitly overridden, follow system color-scheme changes. Apply the saved preference before first paint and preserve it separately from project data. The toggle remains keyboard-operable and exposes its state through `aria-pressed`.
+
 ### Primary
 - **Instrument Cobalt**: The primary action, keyboard focus, active navigation, and links use the system's precise blue accent.
 - **Cobalt Pressed**: A deeper blue marks the primary button's hover state.
@@ -103,11 +118,11 @@ The palette pairs cool, light neutrals with one decisive cobalt accent; neutral 
 - **Title** (600, 12–15px): Compact panel headings and the current project name; use weight and placement rather than oversized display type.
 - **Body** (400, 13px): Default interface text and explanatory copy.
 - **Label** (400, commonly 10–11px): Secondary metadata, status, and control labels.
-- **Code** (400, 13px, 1.75 line-height in the editor): Source and machine readouts; preserve monospaced alignment.
+- **Code** (400, 14px default, 1.75 line-height in the editor): Source text; preserve monospaced alignment. Inspection readouts remain compact.
 
 ## Layout
 
-Treat the application as a technical desk, not a marketing canvas. On wide screens, keep project navigation in a left rail and place source and machine in adjacent, similarly weighted panels. Keep Run prominent in the desk toolbar. Put console, debugger, memory, devices, and virtual files in a tabbed inspection tray beneath the paired panels.
+Treat the application as a technical desk, not a marketing canvas. On wide screens, keep project navigation in a left rail and place source and machine in adjacent, similarly weighted panels. Keep Run prominent in the desk toolbar, with Assemble only in adjacent Run options and all four downloads in Export. Console and Virtual disk are directly accessible; Debug expands the inspection tray and groups Stacks, Memory and Devices. Show PC and instruction counts only while debugging.
 
 Use compact, consistent panel bars and thin dividers to separate tools without adding visual weight. At narrower widths, stack source above the machine and let the toolbar wrap while retaining the primary action's prominence. On small phones, turn project navigation into a compact, horizontally usable workspace area; keep inspector tabs scrollable rather than squeezing their labels.
 
@@ -140,11 +155,12 @@ Use small, lightly rounded corners (3px) for controls and active rows. Keep pane
 ### Navigation
 - **Style:** Keep project and file navigation compact and task-oriented. Use an understated surface for inactive items and a pale blue background with stronger blue text for the active file.
 - **Inspector tabs:** A horizontal tab row uses a bottom rule to mark the selected view; preserve horizontal scrolling on narrow screens.
+- **Progressive disclosure:** Native popovers hold project/file actions, exports and occasional panel settings. Preserve Tab navigation, Escape dismissal and focus restoration. Examples use a native disclosure that closes after selection. File actions expose Set as entry explicitly; never rely on double-click.
 
 ### Work Panels
 - **Style:** Paper canvas with a thin graphite divider and a lightly tinted header bar. Use the same panel grammar for source, machine, and inspection content.
 - **Source editor:** Monospaced text, a distinct line-number gutter, and restrained syntax colors. Keep editor chrome subordinate to the source.
-- **Machine display:** Center the pixelated live canvas in a quiet, cool stage. Keep machine controls and status in compact bands around the display.
+- **Machine display:** Center the pixelated live canvas in a quiet, cool stage, defaulting to Fit. Keep one stateful Pause/Resume control and Reset beside status; Step belongs to Debug.
 - **Inspector tray:** Present machine details as tabbed views under the source-and-display pair; use monospaced formatting for addresses, memory, and execution data.
 
 ## Do's and Don'ts
@@ -158,7 +174,7 @@ Use small, lightly rounded corners (3px) for controls and active rows. Keep pane
 - **Do** use borders and tonal surfaces to make dense work areas easy to scan.
 
 ### Don't:
-- **Don't** replace the light graphite-and-paper foundation with a dark or highly saturated overall palette.
+- **Don't** change the drafting-desk structure between themes or introduce a highly saturated overall palette.
 - **Don't** introduce competing accent colors for ordinary controls or selected states.
 - **Don't** use decorative imagery, gradients, or motion that competes with source or machine output.
 - **Don't** turn the workbench panels into floating cards with heavy shadows or pill-shaped controls.
