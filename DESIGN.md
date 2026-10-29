@@ -28,7 +28,7 @@ typography:
     fontWeight: 400
   code:
     fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace'
-    fontSize: "13px"
+    fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.75
 rounded:
@@ -118,11 +118,11 @@ Until explicitly overridden, follow system color-scheme changes. Apply the saved
 - **Title** (600, 12–15px): Compact panel headings and the current project name; use weight and placement rather than oversized display type.
 - **Body** (400, 13px): Default interface text and explanatory copy.
 - **Label** (400, commonly 10–11px): Secondary metadata, status, and control labels.
-- **Code** (400, 13px, 1.75 line-height in the editor): Source and machine readouts; preserve monospaced alignment.
+- **Code** (400, 14px default, 1.75 line-height in the editor): Source text; preserve monospaced alignment. Inspection readouts remain compact.
 
 ## Layout
 
-Treat the application as a technical desk, not a marketing canvas. On wide screens, keep project navigation in a left rail and place source and machine in adjacent, similarly weighted panels. Keep Run prominent in the desk toolbar. Put console, debugger, memory, devices, and virtual files in a tabbed inspection tray beneath the paired panels.
+Treat the application as a technical desk, not a marketing canvas. On wide screens, keep project navigation in a left rail and place source and machine in adjacent, similarly weighted panels. Keep Run prominent in the desk toolbar, with Assemble only in adjacent Run options and all four downloads in Export. Console and Virtual disk are directly accessible; Debug expands the inspection tray and groups Stacks, Memory and Devices. Show PC and instruction counts only while debugging.
 
 Use compact, consistent panel bars and thin dividers to separate tools without adding visual weight. At narrower widths, stack source above the machine and let the toolbar wrap while retaining the primary action's prominence. On small phones, turn project navigation into a compact, horizontally usable workspace area; keep inspector tabs scrollable rather than squeezing their labels.
 
@@ -155,11 +155,12 @@ Use small, lightly rounded corners (3px) for controls and active rows. Keep pane
 ### Navigation
 - **Style:** Keep project and file navigation compact and task-oriented. Use an understated surface for inactive items and a pale blue background with stronger blue text for the active file.
 - **Inspector tabs:** A horizontal tab row uses a bottom rule to mark the selected view; preserve horizontal scrolling on narrow screens.
+- **Progressive disclosure:** Native popovers hold project/file actions, exports and occasional panel settings. Preserve Tab navigation, Escape dismissal and focus restoration. Examples use a native disclosure that closes after selection. File actions expose Set as entry explicitly; never rely on double-click.
 
 ### Work Panels
 - **Style:** Paper canvas with a thin graphite divider and a lightly tinted header bar. Use the same panel grammar for source, machine, and inspection content.
 - **Source editor:** Monospaced text, a distinct line-number gutter, and restrained syntax colors. Keep editor chrome subordinate to the source.
-- **Machine display:** Center the pixelated live canvas in a quiet, cool stage. Keep machine controls and status in compact bands around the display.
+- **Machine display:** Center the pixelated live canvas in a quiet, cool stage, defaulting to Fit. Keep one stateful Pause/Resume control and Reset beside status; Step belongs to Debug.
 - **Inspector tray:** Present machine details as tabbed views under the source-and-display pair; use monospaced formatting for addresses, memory, and execution data.
 
 ## Do's and Don'ts

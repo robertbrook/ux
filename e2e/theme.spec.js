@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectExample, assembleOnly } from './helpers.js';
 
 test('follows the system until a manual theme is chosen, then persists across reloads and projects', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
@@ -14,7 +15,7 @@ test('follows the system until a manual theme is chosen, then persists across re
   await expect.poll(() => page.evaluate(() => localStorage.getItem('ux-theme'))).toBe('dark');
   await page.reload();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: 'Hello, world Console' }).click();
+  await selectExample(page, 'Hello, world Console');
   await expect(page.locator('#console')).toContainText('Hello, Uxn world!');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await toggle.focus(); await page.keyboard.press('Space');
@@ -46,7 +47,7 @@ test('dark surfaces, syntax, notices and controls remain legible on desktop and 
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('./');
   await expect(page.locator('#runtime-status')).toContainText('ready');
-  await page.locator('#pause').click();
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.locator('#machine-status')).toContainText('Paused');
   const initialPixels = await page.locator('#screen').evaluate(canvas => canvas.toDataURL());
   await page.locator('#theme-toggle').click();
@@ -64,7 +65,7 @@ test('dark surfaces, syntax, notices and controls remain legible on desktop and 
     return [['--text', '--page'], ['--muted', '--panel'], ['--gutter-text', '--gutter-bg'], ['--comment', '--paper'], ['--literal', '--paper'], ['--label', '--paper'], ['--opcode', '--paper'], ['--string', '--paper'], ['--error', '--error-bg'], ['--info', '--info-bg'], ['--link', '--paper'], ['--selected-text', '--selected'], ['--breakpoint-text', '--breakpoint-bg']].map(([a, b]) => ({ pair: `${a} / ${b}`, ratio: ratio(value(a), value(b)) }));
   });
   for (const pair of pairs) expect(pair.ratio, pair.pair).toBeGreaterThanOrEqual(4.5);
-  await page.locator('#source').fill('|0100 #gg BRK'); await page.locator('#assemble').click();
+  await page.locator('#source').fill('|0100 #gg BRK'); await assembleOnly(page);
   await expect(page.locator('#notice')).toHaveAttribute('data-error', 'true');
   await page.locator('#reference-toggle').click();
   await expect(page.locator('#reference')).toBeVisible();

@@ -141,7 +141,7 @@
       "kind": "button",
       "refersTo": "button-primary",
       "description": "The prominent action assembles the current source and runs the program.",
-      "html": "<button class=\"ds-btn-primary\"><span aria-hidden=\"true\">▶</span> Assemble &amp; run</button>",
+      "html": "<button class=\"ds-btn-primary\"><span aria-hidden=\"true\">▶</span> Run</button>",
       "css": ".ds-btn-primary { min-height: 36px; padding: 5px 11px; border: 1px solid var(--blue); border-radius: 3px; background: var(--blue); color: var(--paper); font: 600 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; white-space: nowrap; transition: background 0.15s ease-out; } .ds-btn-primary:hover { background: #1737b7; border-color: #1737b7; } .ds-btn-primary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; } .ds-btn-primary:active { background: #1737b7; } .ds-btn-primary:disabled { opacity: .45; cursor: not-allowed; }"
     },
     {
@@ -149,7 +149,7 @@
       "kind": "button",
       "refersTo": "button-secondary",
       "description": "A quiet outlined or transparent action for supporting operations.",
-      "html": "<button class=\"ds-btn-secondary\">Assemble</button>",
+      "html": "<button class=\"ds-btn-secondary\">Export</button>",
       "css": ".ds-btn-secondary { min-height: 32px; padding: 5px 11px; border: 1px solid var(--line); border-radius: 3px; background: transparent; color: #29333d; font: 400 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; white-space: nowrap; } .ds-btn-secondary:hover { background: #e3e8ec; border-color: #9daab5; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; } .ds-btn-secondary:active { background: #d7dfe5; } .ds-btn-secondary:disabled { opacity: .45; cursor: not-allowed; }"
     },
     {
@@ -164,8 +164,8 @@
       "name": "Inspector Tabs",
       "kind": "nav",
       "refersTo": "inspector-tab-selected",
-      "description": "Switches between console and machine inspection views; the active view is marked by a bottom rule.",
-      "html": "<nav class=\"ds-tabs\" aria-label=\"Inspector views\"><button aria-selected=\"true\">Console <span>0</span></button><button aria-selected=\"false\">Debugger</button><button aria-selected=\"false\">Memory</button></nav>",
+      "description": "Console and Virtual disk stay directly accessible. Debug expands the tray and groups Stacks, Memory and Devices; execution readouts appear only while debugging.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Inspector views\"><button aria-selected=\"true\">Console <span>0</span></button><button aria-selected=\"false\">Debug</button><button aria-selected=\"false\">Virtual disk</button></nav>",
       "css": ".ds-tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--line); background: var(--panel); } .ds-tabs button { flex: 0 0 auto; min-height: 39px; padding: 10px 15px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); font: 400 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-tabs button:hover { background: #e3e8ec; } .ds-tabs button[aria-selected='true'] { border-bottom-color: var(--blue); background: var(--paper); color: #2448b7; } .ds-tabs button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; } .ds-tabs span { margin-left: 4px; padding: 1px 4px; border-radius: 3px; background: #e3e8ee; color: #4d5c6e; font: 9px 'SFMono-Regular', Consolas, monospace; }"
     },
     {

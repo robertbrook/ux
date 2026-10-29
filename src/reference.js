@@ -6,8 +6,9 @@ export const referenceHTML = `
 <p>Uxn is a stack machine with 64 KiB of addressable memory and 256-byte working and return stacks. Uxntal is its assembly language. Varvara supplies the devices.</p>
 <nav class="reference-jump" aria-label="Reference sections"><a href="#ref-start">Start</a><a href="#ref-syntax">Syntax</a><a href="#ref-ops">Opcodes</a><a href="#ref-devices">Devices</a><a href="#ref-keys">Shortcuts</a></nav>
 <h3 id="ref-start">Your first program</h3>
-<p>Open <strong>Hello, world</strong> in the example programs, then choose <strong>Assemble &amp; run</strong>. Console output appears below. Assemble alone to load a fresh machine at <code>0100</code>; <strong>Step</strong> executes one instruction.</p>
-<p>In the debugger, values are hexadecimal. The last byte is the top of each stack. Source line numbers toggle breakpoints. A breakpoint stops <em>before</em> its instruction; Resume continues past it.</p>
+<p>Open <strong>Hello, world</strong> in the example programs; it runs automatically. Use <strong>Run</strong> after editing. Console output appears below. Choose <strong>Assemble only</strong> from Run options to load a fresh machine at <code>0100</code>; <strong>Step</strong> under <strong>Debug</strong> executes one instruction.</p>
+<p>Debug groups Stacks, Memory and Devices. Values are hexadecimal; the last byte is the top of each stack. Source line numbers toggle breakpoints. A breakpoint stops <em>before</em> its instruction; Resume continues past it. The display's execution control switches between Pause and Resume.</p>
+<p>Use a source file's actions to <strong>Set as entry</strong>. Project actions contain New, Rename and Delete. <strong>Export</strong> downloads a project backup, current source, ROM or screen image. Editor and display settings hold text size and display scale.</p>
 <h3 id="ref-syntax">Uxntal syntax</h3>
 <table><tr><th>Token</th><th>Meaning</th></tr>
 <tr><td><code>( comment )</code></td><td>Comment; nestable, separated by whitespace</td></tr>
@@ -53,6 +54,6 @@ export const referenceHTML = `
 <p>The virtual disk is project-local, not your computer's disk. Add files, let ROMs read/write them, or download them individually. Both File devices have independent cursors. Directory listings and file stat are supported. Individual files are limited to 16 MiB; browser storage quotas also apply.</p>
 <p>This workbench implements the standard Uxn opcodes, circular stacks, 1 MiB expansion memory, and the Varvara devices listed above. Host process execution and host filesystem access are not supported. Programs requiring those extensions will need a native emulator. Assembly supports token macros, labels, includes and lambdas, but not every experimental assembler extension.</p>
 <h3 id="ref-keys">Keyboard shortcuts</h3>
-<table><tr><td>Ctrl / ⌘ Enter</td><td>Assemble &amp; run</td></tr><tr><td>Ctrl / ⌘ S</td><td>Save workspace locally</td></tr><tr><td>Tab (editor)</td><td>Insert two spaces</td></tr><tr><td>F5 / F6 / F10</td><td>Resume / Pause / Step</td></tr><tr><td>Escape</td><td>Close reference / find</td></tr></table>
+<table><tr><td>Ctrl / ⌘ Enter</td><td>Run (assemble and execute)</td></tr><tr><td>Ctrl / ⌘ S</td><td>Save workspace locally</td></tr><tr><td>Tab (editor)</td><td>Insert two spaces</td></tr><tr><td>F5 / F6 / F10</td><td>Resume / Pause / Step</td></tr><tr><td>Escape</td><td>Close menu / reference / find</td></tr></table>
 <h3>Further reading</h3>
 <p><a href="https://100r.co/site/uxn.html" target="_blank" rel="noreferrer">Hundred Rabbits — Uxn ↗</a><br><a href="https://wiki.xxiivv.com/site/uxntal.html" target="_blank" rel="noreferrer">Uxntal language reference ↗</a><br><a href="https://wiki.xxiivv.com/site/varvara.html" target="_blank" rel="noreferrer">Varvara specification ↗</a><br><a href="https://github.com/remko/uxn.wasm" target="_blank" rel="noreferrer">WebAssembly core by Remko Tronçon ↗</a></p>`;
