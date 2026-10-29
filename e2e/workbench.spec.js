@@ -9,7 +9,7 @@ test('real WASM, examples, stepping, error recovery, memory and files', async ({
   await ready(page);
   await expect(page.locator('#dimensions')).toHaveText('128 × 128');
   await selectExample(page, 'Hello, world Console');
-  await expect(page.locator('#console')).toContainText('Hello, Uxn world!');
+  await expect(page.locator('#console')).toHaveValue(/Hello, Uxn world!/);
   await selectExample(page, 'Stack arithmetic Debugger');
   await expect(page.locator('#machine-status')).toContainText('Paused');
   await page.locator('#step').click();
@@ -40,7 +40,7 @@ test('breakpoints stop before instruction; infinite loop stays interruptible', a
   await page.locator('#source').fill('|0100\n#03\n#04\nADD\nBRK');
   await page.locator('#gutter [data-line="3"]').click();
   await page.locator('#run').click();
-  await expect(page.locator('#console')).toContainText('Breakpoint at 0102');
+  await expect(page.locator('#console')).toHaveValue(/Breakpoint at 0102/);
   await expect(page.locator('#wst')).toHaveText('03');
   await page.getByRole('button', { name: 'Resume', exact: true }).click();
   await expect(page.locator('#wst')).toHaveText('07');
@@ -55,12 +55,12 @@ test('keyboard and console vectors, persistence, ROM and project downloads', asy
   await selectExample(page, 'Keyboard echo Controller');
   await expect(page.locator('#runtime-status')).toContainText('ready');
   await page.locator('#screen').focus(); await page.keyboard.type('uxn');
-  await expect(page.locator('#console')).toContainText('uxn');
+  await expect(page.locator('#console')).toHaveValue(/uxn/);
   const download = await exportFile(page, 'download-rom'); expect(download.suggestedFilename()).toMatch(/\.rom$/);
   await page.locator('#source').fill('|0100 #41 #18 DEO BRK');
   await page.keyboard.press('Control+s'); await page.reload();
   await expect(page.locator('#source')).toHaveValue('|0100 #41 #18 DEO BRK');
-  await expect(page.locator('#console')).toContainText('A');
+  await expect(page.locator('#console')).toHaveValue(/A/);
 });
 test('desktop and mobile have no overflow and primary actions are usable', async ({ page }) => {
   for (const size of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {

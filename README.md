@@ -6,7 +6,7 @@ A browser-based Uxn / Uxntal / Varvara programming environment. The VM runs real
 
 ## Workbench
 
-- Uxntal editor with syntax coloring, source line breakpoints, find, text-size controls and multiple source files.
+- Uxntal editor with a highlighted syntax preview, source line breakpoints, find, text-size controls and multiple source files.
 - Assembler with byte/short literals, labels and sublabels, relative and zero-page references, token macros, includes, immediate jumps/calls, anonymous blocks and source maps.
 - WebAssembly Uxn core with bounded execution, pause/resume, single-instruction stepping, reset, two stack inspectors, live disassembly, memory pages and device registers.
 - Varvara background/foreground screen layers, palette, pixels, fills, one/two-bit sprites, blending, flips, auto-increment and sprite repeat.
@@ -16,12 +16,29 @@ A browser-based Uxn / Uxntal / Varvara programming environment. The VM runs real
 - Eight editable example programs and an integrated language/device reference.
 - Local project persistence, project JSON import/export, `.tal` import/export, ROM import/export, virtual file upload/download and PNG screenshots.
 - Light and dark themes, with system-preference detection and a saved header toggle. Theme changes affect the workbench, not the ROM's palette or exported screenshots.
+- An isolated Uxntal scratch REPL with persistent stacks, memory, labels/macros, console output, command history and interruptible execution.
 
 Select an example to run it; the examples list collapses after selection. Use **Run** after editing. **Run options → Assemble only** loads the ROM paused at `0100`; **Debug → Step** executes one instruction. Debug groups stacks/disassembly, memory and devices in an expanded tray; Console and Virtual disk remain directly accessible. Click a line number to toggle a breakpoint. Click the display to send keyboard/mouse input; its execution control switches between Pause and Resume.
 
-Use a source file's **··· → Set as entry** action to change the entry file; `~library.tal` includes another source. **Project ···** contains New, Rename and Delete. **Export** gathers project, current source, ROM and screen-image downloads. Text size lives in **Editor settings**, with a 14px default; display scale lives in **Display settings**, defaulting to Fit.
+Use a source file's **··· → Set as entry** action to change the entry file; `~library.tal` includes another source. **Project actions (···)** contains New, Rename and Delete. **Export** gathers project, current source, ROM and screen-image downloads. Text size lives in **Editor settings**, with a 14px default; display scale lives in **Display settings**, defaulting to Fit. Expand **Syntax preview** below the editor for live highlighted source.
 
 Ctrl/⌘ Enter assembles and runs; Ctrl/⌘ S saves locally; F5 resumes, F6 pauses, F10 steps. Export a project to back it up: browser storage is origin-local and can be cleared or exhausted. Storage failures are shown explicitly. Imported projects and ROMs run untrusted code only inside the VM worker; execution budgets keep infinite loops interruptible.
+
+## Scratch REPL
+
+Open **REPL** in the inspection tray. Enter `#03 #04 ADD`, then `#02 MUL`: the working stack changes from `07` to `0e`. Stacks, RAM, labels and macros persist between submissions in a separate WASM worker, without touching your project or running ROM. Each result shows both stacks, bottom to top, in hexadecimal. Console writes (`#41 #18 DEO`) appear in the transcript.
+
+Enter or Ctrl/⌘ Enter evaluates; Shift+Enter adds a line. Up at the start / Down at the end of the input recalls the last 100 submissions. **Stop** interrupts execution and keeps partial changes; **Reset REPL** clears the scratch machine and definitions, retaining input history. **Clear output** only clears the transcript. Switching projects does not reset the REPL; reloading the page does. Scratch state is not saved or included in project exports.
+
+Snippets use normal Uxntal syntax without a required `|0100`. Each submission appends code at **Next code**, with an automatic `BRK` (reserved, not redefinable as a macro), and executes only the new entry. Earlier labels/macros remain available. Code is append-only; use `STZ`/`STA` for memory writes (zero page is convenient scratch space). Includes resolve only within REPL source history, not project files. There is no scratch display, audible audio or automatic input/screen-vector execution; use the project VM for interactive Varvara programs.
+
+Execution stops after 1,000,000 instructions per submission, preserving partial state. Console output is capped at 64,000 characters per submission with a visible truncation notice; the visible transcript retains up to 200 entries / 128,000 characters. Snippets are limited to 32,768 characters and accumulated source to 256 KiB. Reset when code space or source history is full, or when System/state halts the scratch machine.
+
+## Interface
+
+The entire interface uses **Bootstrap 6.0.0-alpha.1**, pinned exactly in `package.json`. This is a prerelease, not Bootstrap 5 or a stable Bootstrap 6 release. All styling comes from the bundled Bootstrap stylesheet: its grid, utilities, menus, forms, dialogs, tabs and default light/dark color schemes. There is no custom stylesheet, Sass theme or application-authored inline CSS. Bootstrap's menu component handles positioning and keyboard interaction.
+
+The editor uses a native textarea and separate syntax preview so text selection and the caret work without custom overlay CSS. The display scales its canvas bitmap with smoothing disabled, rather than custom CSS; PNG export uses the untouched logical-resolution frame. In menus, use Up/Down to navigate, Enter to activate and Escape to dismiss.
 
 ## Development
 

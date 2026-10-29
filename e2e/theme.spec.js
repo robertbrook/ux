@@ -6,17 +6,19 @@ test('follows the system until a manual theme is chosen, then persists across re
   await page.goto('./');
   await expect(page.locator('#runtime-status')).toContainText('ready');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-bs-theme', 'dark');
   const toggle = page.getByRole('button', { name: 'Dark mode', exact: true });
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('html')).toHaveAttribute('data-bs-theme', 'light');
   await toggle.click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect.poll(() => page.evaluate(() => localStorage.getItem('ux-theme'))).toBe('dark');
   await page.reload();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await selectExample(page, 'Hello, world Console');
-  await expect(page.locator('#console')).toContainText('Hello, Uxn world!');
+  await expect(page.locator('#console')).toHaveValue(/Hello, Uxn world!/);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await toggle.focus(); await page.keyboard.press('Space');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -30,7 +32,7 @@ test('saved theme applies before the application module executes', async ({ page
   await page.route('**/src/main.js', route => route.abort());
   await page.goto('./');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#14191f');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#212529');
 });
 
 test('uses the current system theme when it changes before the application module executes', async ({ page }) => {
@@ -53,7 +55,7 @@ test('uses the current system theme when it changes before the application modul
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('html')).toHaveAttribute('data-theme-preference', 'system');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#e9edf0');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#ffffff');
 });
 
 test('theme changes synchronize between tabs without touching workspace data', async ({ page, context }) => {
@@ -77,15 +79,18 @@ test('dark surfaces, syntax, notices and controls remain legible on desktop and 
   expect(await page.locator('#screen').evaluate(canvas => canvas.toDataURL())).toBe(initialPixels);
   await page.locator('#theme-toggle').click();
   const pairs = await page.evaluate(() => {
-    const root = getComputedStyle(document.documentElement);
+    const canvas = document.createElement('canvas'), context = canvas.getContext('2d');
     const rgb = color => {
-      const element = document.createElement('span'); element.style.color = color; document.body.append(element);
-      const result = getComputedStyle(element).color.match(/[\d.]+/g).slice(0, 3).map(Number); element.remove(); return result;
+      context.fillStyle = color; context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3);
     };
     const luminance = color => rgb(color).map(x => { x /= 255; return x <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; }).reduce((sum, x, i) => sum + x * [.2126, .7152, .0722][i], 0);
     const ratio = (a, b) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
-    const value = name => root.getPropertyValue(name).trim();
-    return [['--text', '--page'], ['--muted', '--panel'], ['--gutter-text', '--gutter-bg'], ['--comment', '--paper'], ['--literal', '--paper'], ['--label', '--paper'], ['--opcode', '--paper'], ['--string', '--paper'], ['--error', '--error-bg'], ['--info', '--info-bg'], ['--link', '--paper'], ['--selected-text', '--selected'], ['--breakpoint-text', '--breakpoint-bg']].map(([a, b]) => ({ pair: `${a} / ${b}`, ratio: ratio(value(a), value(b)) }));
+    return ['fg-body bg-body', 'fg-2 bg-1', 'fg-primary bg-body', 'fg-emphasis-warning bg-body', 'fg-success bg-body', 'alert theme-danger', 'alert theme-info'].map(classes => {
+      const element = document.createElement('div'); element.className = classes; element.textContent = 'Contrast'; document.body.append(element);
+      const style = getComputedStyle(element), result = { pair: classes, ratio: ratio(style.color, style.backgroundColor) };
+      element.remove(); return result;
+    });
   });
   for (const pair of pairs) expect(pair.ratio, pair.pair).toBeGreaterThanOrEqual(4.5);
   await page.locator('#source').fill('|0100 #gg BRK'); await assembleOnly(page);

@@ -1,223 +1,37 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T22:31:35.881Z",
   "title": "Design System: ux workbench",
   "extensions": {
-    "themes": {
-      "light": {
-        "page": "#e9edf0",
-        "paper": "#fcfcfa",
-        "panel": "#f3f5f6",
-        "text": "#29333d",
-        "muted": "#596672",
-        "line": "#cbd2d8",
-        "link": "#2448b7"
-      },
-      "dark": {
-        "page": "#14191f",
-        "paper": "#1b2129",
-        "panel": "#222a34",
-        "text": "#dce4ec",
-        "muted": "#a4b2c0",
-        "line": "#3a4653",
-        "link": "#a3beff"
-      }
-    },
-    "colorMeta": {
-      "primary": {
-        "role": "primary",
-        "displayName": "Instrument Cobalt",
-        "canonical": "#2448da",
-        "tonalRamp": ["#14277e", "#19339f", "#1f3fc1", "#2448da", "#5570e4", "#8799ed", "#b8c4f5", "#f0f3fd"]
-      },
-      "primary-hover": {
-        "role": "primary",
-        "displayName": "Cobalt Pressed",
-        "canonical": "#1737b7",
-        "tonalRamp": ["#0d1d68", "#102680", "#142f9c", "#1737b7", "#4b65ca", "#8294dc", "#b8c2ec", "#f0f2fc"]
-      },
-      "graphite": {
-        "role": "neutral",
-        "displayName": "Graphite Ink",
-        "canonical": "#29333d",
-        "tonalRamp": ["#101316", "#171d23", "#20272f", "#29333d", "#59636d", "#879098", "#b9bec3", "#f2f3f4"]
-      },
-      "neutral-bg": {
-        "role": "neutral",
-        "displayName": "Cool Workbench",
-        "canonical": "#e9edf0",
-        "tonalRamp": ["#15191c", "#22292e", "#343d44", "#4c565e", "#6a747c", "#929ba2", "#bac1c6", "#f1f3f4"]
-      },
-      "paper": {
-        "role": "neutral",
-        "displayName": "Paper Surface",
-        "canonical": "#fcfcfa",
-        "tonalRamp": ["#181816", "#282826", "#3b3b38", "#52524f", "#70706c", "#969692", "#c1c1bd", "#f4f4f1"]
-      },
-      "panel": {
-        "role": "neutral",
-        "displayName": "Raised Panel Tint",
-        "canonical": "#f3f5f6",
-        "tonalRamp": ["#17191a", "#25292b", "#363b3e", "#4d5356", "#6c7275", "#92989b", "#bcc1c3", "#f4f5f5"]
-      },
-      "line": {
-        "role": "neutral",
-        "displayName": "Graphite Divider",
-        "canonical": "#cbd2d8",
-        "tonalRamp": ["#101214", "#1c2023", "#2c3237", "#41484e", "#5d656c", "#818990", "#a9b0b5", "#edf0f2"]
-      },
-      "muted": {
-        "role": "neutral",
-        "displayName": "Muted Slate",
-        "canonical": "#596672",
-        "tonalRamp": ["#101316", "#181e23", "#232b31", "#323c44", "#46535d", "#596672", "#8b969e", "#f1f2f3"]
-      }
-    },
-    "typographyMeta": {
-      "body": {
-        "displayName": "System Sans",
-        "purpose": "Compact interface copy and control text."
-      },
-      "label": {
-        "displayName": "Quiet Labels",
-        "purpose": "Secondary metadata and compact control labels."
-      },
-      "code": {
-        "displayName": "Workbench Mono",
-        "purpose": "Source code, filenames, addresses, and machine readouts."
-      }
-    },
-    "shadows": [
-      {
-        "name": "canvas-lift",
-        "value": "0 3px 12px #24364e24",
-        "purpose": "Subtle separation of the pixel display from its stage."
-      },
-      {
-        "name": "dialog-overlay",
-        "value": "0 15px 50px #24364e33",
-        "purpose": "Lift for the modal naming dialog."
-      },
-      {
-        "name": "reference-drawer",
-        "value": "-8px 0 24px #24364e22",
-        "purpose": "Separation for the fixed reference panel at intermediate widths."
-      }
-    ],
-    "motion": [
-      {
-        "name": "primary-hover",
-        "value": "background 0.15s ease-out",
-        "purpose": "Brief color transition on the primary action."
-      },
-      {
-        "name": "status-reveal",
-        "value": "0.2s ease-out",
-        "purpose": "Small reveal when a status notice appears; omitted when reduced motion is requested."
-      }
-    ],
-    "breakpoints": [
-      {
-        "name": "wide",
-        "value": "1700px"
-      },
-      {
-        "name": "desk",
-        "value": "1200px"
-      },
-      {
-        "name": "stack-panels",
-        "value": "850px"
-      },
-      {
-        "name": "compact",
-        "value": "560px"
-      }
-    ]
+    "framework": {
+      "name": "Bootstrap",
+      "version": "6.0.0-alpha.1",
+      "stylesheet": "bootstrap/dist/css/bootstrap.min.css",
+      "constraint": "Bootstrap styles only; no application CSS or inline styling.",
+      "themes": ["light", "dark"]
+    }
   },
   "components": [
     {
       "name": "Primary Run Button",
       "kind": "button",
-      "refersTo": "button-primary",
-      "description": "The prominent action assembles the current source and runs the program.",
-      "html": "<button class=\"ds-btn-primary\"><span aria-hidden=\"true\">▶</span> Run</button>",
-      "css": ".ds-btn-primary { min-height: 36px; padding: 5px 11px; border: 1px solid var(--blue); border-radius: 3px; background: var(--blue); color: var(--paper); font: 600 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; white-space: nowrap; transition: background 0.15s ease-out; } .ds-btn-primary:hover { background: #1737b7; border-color: #1737b7; } .ds-btn-primary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; } .ds-btn-primary:active { background: #1737b7; } .ds-btn-primary:disabled { opacity: .45; cursor: not-allowed; }"
+      "description": "Assembles and runs the project; adjacent Run options contains Assemble only.",
+      "html": "<button class=\"btn-solid theme-primary btn-sm\">Run</button>"
     },
     {
-      "name": "Secondary Button",
-      "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "A quiet outlined or transparent action for supporting operations.",
-      "html": "<button class=\"ds-btn-secondary\">Export</button>",
-      "css": ".ds-btn-secondary { min-height: 32px; padding: 5px 11px; border: 1px solid var(--line); border-radius: 3px; background: transparent; color: #29333d; font: 400 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; white-space: nowrap; } .ds-btn-secondary:hover { background: #e3e8ec; border-color: #9daab5; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; } .ds-btn-secondary:active { background: #d7dfe5; } .ds-btn-secondary:disabled { opacity: .45; cursor: not-allowed; }"
-    },
-    {
-      "name": "Text Field",
-      "kind": "input",
-      "refersTo": "input-field",
-      "description": "Compact text entry for names, addresses, search, and console input.",
-      "html": "<label class=\"ds-field\"><span>Find in source</span><input type=\"text\" placeholder=\"Type to find\"></label>",
-      "css": ".ds-field { display: grid; gap: 6px; color: var(--muted); font: 400 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-field input { min-width: 0; min-height: 32px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); color: #29333d; font: 400 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-field input:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }"
-    },
-    {
-      "name": "Inspector Tabs",
+      "name": "Inspector Navigation",
       "kind": "nav",
-      "refersTo": "inspector-tab-selected",
-      "description": "Console and Virtual disk stay directly accessible. Debug expands the tray and groups Stacks, Memory and Devices; execution readouts appear only while debugging.",
-      "html": "<nav class=\"ds-tabs\" aria-label=\"Inspector views\"><button aria-selected=\"true\">Console <span>0</span></button><button aria-selected=\"false\">Debug</button><button aria-selected=\"false\">Virtual disk</button></nav>",
-      "css": ".ds-tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--line); background: var(--panel); } .ds-tabs button { flex: 0 0 auto; min-height: 39px; padding: 10px 15px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); font: 400 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-tabs button:hover { background: #e3e8ec; } .ds-tabs button[aria-selected='true'] { border-bottom-color: var(--blue); background: var(--paper); color: #2448b7; } .ds-tabs button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; } .ds-tabs span { margin-left: 4px; padding: 1px 4px; border-radius: 3px; background: #e3e8ee; color: #4d5c6e; font: 9px 'SFMono-Regular', Consolas, monospace; }"
-    },
-    {
-      "name": "Workbench Panel Header",
-      "kind": "custom",
-      "description": "A lightly tinted, compact title bar shared by source, machine, and reference panels.",
-      "html": "<div class=\"ds-panel-bar\"><strong>Varvara display</strong><button aria-label=\"Fullscreen display\">⛶</button></div>",
-      "css": ".ds-panel-bar { display: flex; min-height: 43px; align-items: center; justify-content: space-between; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--line); background: var(--panel); color: #29333d; } .ds-panel-bar strong { font: 600 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-panel-bar button { min-height: 27px; padding: 3px 7px; border: 0; border-radius: 3px; background: transparent; color: #29333d; font: 400 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-panel-bar button:hover { background: #e3e8ec; } .ds-panel-bar button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }"
-    },
-    {
-      "name": "Machine Display Stage",
-      "kind": "custom",
-      "description": "Centers a pixelated live machine display on a quiet, cool surface.",
-      "html": "<div class=\"ds-display-stage\"><canvas aria-label=\"Varvara display\"></canvas></div>",
-      "css": ".ds-display-stage { display: flex; min-height: 200px; min-width: 0; align-items: center; justify-content: center; overflow: auto; padding: 18px; background-color: #dde3e7; background-image: radial-gradient(#aab7c3 0.6px, transparent .6px); background-size: 12px 12px; } .ds-display-stage canvas { display: block; max-width: 100%; max-height: 100%; aspect-ratio: 1; background: #001122; image-rendering: pixelated; object-fit: contain; box-shadow: 0 3px 12px #24364e24; }"
+      "description": "Console, REPL, Debug and Virtual disk are top-level views. Debug groups Stacks, Memory and Devices.",
+      "html": "<nav class=\"nav nav-underline\"><button class=\"nav-link active\">Console</button><button class=\"nav-link\">REPL</button><button class=\"nav-link\">Debug</button><button class=\"nav-link\">Virtual disk</button></nav>"
     }
   ],
   "narrative": {
-    "northStar": "The Technical Drafting Desk",
-    "overview": "The workbench is a calm, precise instrument for learning and building with Uxn. Light graphite framing and paper-like work surfaces keep attention on source and machine output; cobalt is reserved for the main action, links, focus, and clear active states. The visual language is compact and information-dense without making the tools compete with the program being edited.\n\nThe desk connects the real source editor to a live Varvara machine: source on the left, machine display on the right, and an inspection tray below. Project navigation stays at the edge, while assemble-and-run is the most prominent control. The interface favors clear borders, restrained states, and direct labels over ornamental chrome.",
-    "keyCharacteristics": [
-      "Light graphite framing around warm-white work surfaces",
-      "Cobalt accents for action and interaction state",
-      "Source and live machine shown as paired instruments",
-      "Inspection views grouped in a persistent lower tray",
-      "Compact system typography with monospaced code and readouts"
-    ],
+    "northStar": "Stock Bootstrap 6 programming workbench",
+    "overview": "Use Bootstrap 6 alpha exclusively. Keep source and the live machine paired, with quiet project navigation and progressive inspection. The scratch REPL has isolated persistent stacks and memory.",
     "rules": [
       {
-        "name": "The One-Accent Rule",
-        "body": "Keep cobalt focused on actions, links, focus, and selected states; let neutral surfaces do the structural work.",
-        "section": "colors"
-      },
-      {
-        "name": "The Border-First Rule",
-        "body": "Use tonal changes and quiet dividers to organize the desk; reserve shadows for elements that actually float above it.",
-        "section": "elevation"
+        "name": "Bootstrap Only",
+        "body": "Use the pinned framework's components, utilities and default light/dark palette. No custom CSS, Sass overrides or application-authored inline styles."
       }
-    ],
-    "dos": [
-      "Do keep source and the live machine visible as the central paired work surfaces on wide screens.",
-      "Do make assemble-and-run the clearest action in the toolbar.",
-      "Do use cobalt for meaningful interaction states and keep supporting information muted.",
-      "Do distinguish code and machine values with the established monospaced stack.",
-      "Do retain visible keyboard focus and clear labels for controls.",
-      "Do use borders and tonal surfaces to make dense work areas easy to scan."
-    ],
-    "donts": [
-      "Don't replace the light graphite-and-paper foundation with a dark or highly saturated overall palette.",
-      "Don't introduce competing accent colors for ordinary controls or selected states.",
-      "Don't use decorative imagery, gradients, or motion that competes with source or machine output.",
-      "Don't turn the workbench panels into floating cards with heavy shadows or pill-shaped controls."
     ]
   }
 }
