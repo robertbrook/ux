@@ -24,7 +24,9 @@ function applyTheme(theme) {
   $('theme-toggle').title = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
   document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#14191f' : '#e9edf0';
 }
-applyTheme(document.documentElement.dataset.theme);
+applyTheme(themePreference === 'system'
+  ? systemTheme.matches ? 'dark' : 'light'
+  : document.documentElement.dataset.theme);
 $('theme-toggle').onclick = () => {
   themePreference = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   applyTheme(themePreference);

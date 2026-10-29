@@ -33,6 +33,29 @@ test('saved theme applies before the application module executes', async ({ page
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#14191f');
 });
 
+test('uses the current system theme when it changes before the application module executes', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  let releaseModule;
+  let notifyModuleRequested;
+  const moduleRequested = new Promise(resolve => { notifyModuleRequested = resolve; });
+  const moduleReleased = new Promise(resolve => { releaseModule = resolve; });
+  await page.route('**/src/main.js', async route => {
+    notifyModuleRequested();
+    await moduleReleased;
+    await route.continue();
+  });
+
+  const navigation = page.goto('./');
+  await moduleRequested;
+  await page.emulateMedia({ colorScheme: 'light' });
+  releaseModule();
+  await navigation;
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme-preference', 'system');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#e9edf0');
+});
+
 test('theme changes synchronize between tabs without touching workspace data', async ({ page, context }) => {
   await page.goto('./');
   const other = await context.newPage(); await other.goto('./');
